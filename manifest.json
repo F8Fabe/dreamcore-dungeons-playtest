@@ -1,0 +1,132 @@
+[
+  {
+    "path": ".nojekyll",
+    "bytes": 0,
+    "parts": [],
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "index.apple-touch-icon.png",
+    "bytes": 11944,
+    "parts": [
+      "001-000.bin"
+    ],
+    "sha256": "01d4f63e525941e06ce74f5187dad030d20a8d52a07ce365ae4e94af97a3b1f5"
+  },
+  {
+    "path": "index.audio.position.worklet.js",
+    "bytes": 2973,
+    "parts": [
+      "002-000.bin"
+    ],
+    "sha256": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8"
+  },
+  {
+    "path": "index.audio.worklet.js",
+    "bytes": 7298,
+    "parts": [
+      "003-000.bin"
+    ],
+    "sha256": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3"
+  },
+  {
+    "path": "index.html",
+    "bytes": 5550,
+    "parts": [
+      "004-000.bin"
+    ],
+    "sha256": "4269bb9e74f20051bd0c923deba1cb138acd14076b29053a4fc8b3e01092fdf7"
+  },
+  {
+    "path": "index.icon.png",
+    "bytes": 5700,
+    "parts": [
+      "005-000.bin"
+    ],
+    "sha256": "ad3c35ad0facf487c618204bd98db543034fc95224eadc7f08c7a9ff38d5b3b5"
+  },
+  {
+    "path": "index.js",
+    "bytes": 279815,
+    "parts": [
+      "006-000.bin"
+    ],
+    "sha256": "33c94cb3175f3333b82e2a3be5e8e86f77986f0aa2042b1631f6367a4e5bb6ba"
+  },
+  {
+    "path": "index.pck",
+    "bytes": 552749556,
+    "parts": [
+      "007-000.bin",
+      "007-001.bin",
+      "007-002.bin",
+      "007-003.bin",
+      "007-004.bin",
+      "007-005.bin",
+      "007-006.bin",
+      "007-007.bin",
+      "007-008.bin",
+      "007-009.bin",
+      "007-010.bin",
+      "007-011.bin",
+      "007-012.bin",
+      "007-013.bin",
+      "007-014.bin",
+      "007-015.bin",
+      "007-016.bin",
+      "007-017.bin",
+      "007-018.bin",
+      "007-019.bin",
+      "007-020.bin",
+      "007-021.bin",
+      "007-022.bin",
+      "007-023.bin",
+      "007-024.bin",
+      "007-025.bin",
+      "007-026.bin",
+      "007-027.bin"
+    ],
+    "sha256": "c08a61c20f9a7aee526c52b42b558bef1cd33b7e507f75093250db6eba64a18e"
+  },
+  {
+    "path": "index.png",
+    "bytes": 21443,
+    "parts": [
+      "008-000.bin"
+    ],
+    "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e"
+  },
+  {
+    "path": "index.wasm",
+    "bytes": 39514754,
+    "parts": [
+      "009-000.bin",
+      "009-001.bin"
+    ],
+    "sha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
+  },
+  {
+    "path": "Licenses/Fredoka-OFL.txt",
+    "bytes": 4388,
+    "parts": [
+      "010-000.bin"
+    ],
+    "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
+  },
+  {
+    "path": "Licenses/Godot-COPYRIGHT.txt",
+    "bytes": 100108,
+    "parts": [
+      "011-000.bin"
+    ],
+    "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
+  },
+  {
+    "path": "Licenses/Godot-LICENSE.txt",
+    "bytes": 1149,
+    "parts": [
+      "012-000.bin"
+    ],
+    "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
+  }
+]
