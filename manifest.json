@@ -31,11 +31,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 5550,
+    "bytes": 5549,
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "4269bb9e74f20051bd0c923deba1cb138acd14076b29053a4fc8b3e01092fdf7"
+    "sha256": "e85b9eda294705e7277854f6e44f4a63941b35bb3e0df2accd4ca18785b6ce64"
   },
   {
     "path": "index.icon.png",
@@ -55,38 +55,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 552749556,
+    "bytes": 49857392,
     "parts": [
       "007-000.bin",
       "007-001.bin",
-      "007-002.bin",
-      "007-003.bin",
-      "007-004.bin",
-      "007-005.bin",
-      "007-006.bin",
-      "007-007.bin",
-      "007-008.bin",
-      "007-009.bin",
-      "007-010.bin",
-      "007-011.bin",
-      "007-012.bin",
-      "007-013.bin",
-      "007-014.bin",
-      "007-015.bin",
-      "007-016.bin",
-      "007-017.bin",
-      "007-018.bin",
-      "007-019.bin",
-      "007-020.bin",
-      "007-021.bin",
-      "007-022.bin",
-      "007-023.bin",
-      "007-024.bin",
-      "007-025.bin",
-      "007-026.bin",
-      "007-027.bin"
+      "007-002.bin"
     ],
-    "sha256": "c08a61c20f9a7aee526c52b42b558bef1cd33b7e507f75093250db6eba64a18e"
+    "sha256": "a660a0e7b928b08acba91335cff100394f16caf6b8a7073bc538eb3e5aac81fc"
   },
   {
     "path": "index.png",
