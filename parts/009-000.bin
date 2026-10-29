@@ -120,6 +120,22 @@ body {
 #status-progress::-moz-progress-bar { background: #dfa3dc; border-radius: 8px; }
 #status-notice { max-width: 480px; margin: 0; overflow-wrap: anywhere; }
 #status-splash.show-image--false { display: block; }
+/* Sleeping heroines and their little librarian guide. */
+#status { gap: 12px; overflow-y: auto; }
+#dream-story { max-width: 420px; margin: 0 0 8px; color: #dcc9ed; font-size: clamp(16px, 3.8vw, 20px); line-height: 1.55; }
+#status-splash, #status-splash.fullsize--true { width: min(88vw, 470px); max-height: 29vh; border-radius: 0; box-shadow: none; }
+#dream-title { font-size: clamp(22px, 4.8vw, 30px); }
+#dream-welcome { display: flex; align-items: center; justify-content: center; gap: 14px; }
+#dream-welcome img { width: 76px; height: 100px; object-fit: contain; }
+#dream-welcome p { color: #e3c9e9; text-align: left; font-size: 14px; line-height: 1.5; }
+#dream-caption { font-size: 12px; }
+@media (max-height: 500px) {
+ #status { gap: 5px; padding: 10px; }
+ #dream-story { font-size: 14px; margin: 0; }
+ #status-splash, #status-splash.fullsize--true { max-height: 25vh; }
+ #dream-welcome img { height: 55px; width: 42px; }
+ #dream-title { font-size: 20px; }
+}
 
 </style>
 </head>
@@ -133,16 +149,16 @@ body {
 		</noscript>
 
 		<div id="status">
-			<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="dreamcore-512.png" alt="Dreamcore Dungeons">
+			<p id="dream-story">You fell asleep…<br>and woke up in a strange library.</p><img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="sleeping-trio-v1.webp" alt="Mimi, Rosalie and Freya sleeping and dreaming">
 			<h1 id="dream-title">Dreamcore Dungeons</h1>
-<p id="dream-caption">Loading your dream…</p>
+<div id="dream-welcome"><img src="librarian-chibi-v1.webp" alt="The dream librarian waves hello"><p>“Welcome, dreamer.<br>Your next dream is waiting.”</p></div><p id="dream-caption">Opening the library…</p>
 <progress aria-label="Loading game" id="status-progress"></progress>
 			<div id="status-notice"></div>
 		</div>
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":51348884,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":51353164,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

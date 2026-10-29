@@ -71,11 +71,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 7447,
+    "bytes": 8703,
     "parts": [
       "009-000.bin"
     ],
-    "sha256": "a9cb0c672dab7d5b43d81cf2d4b7436ffd53e59dc84669e06801e236256d5918"
+    "sha256": "3ef027bb2da9b35f6d336fb80d3cbe5c82aeb94189a78c08e629c8923717b054"
   },
   {
     "path": "index.icon.png",
@@ -95,13 +95,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 51348884,
+    "bytes": 51353164,
     "parts": [
       "012-000.bin",
       "012-001.bin",
       "012-002.bin"
     ],
-    "sha256": "dc23eb0767394049e49bb67e1df29ff3a08c2fd4dac0a61241237b5ec05550e7"
+    "sha256": "f4739241dec687b2e90dd1af108f76e4975d8f3bd3b3a083eaf782757442f0a2"
   },
   {
     "path": "index.png",
@@ -121,10 +121,18 @@
     "sha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
   },
   {
+    "path": "librarian-chibi-v1.webp",
+    "bytes": 18048,
+    "parts": [
+      "015-000.bin"
+    ],
+    "sha256": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af"
+  },
+  {
     "path": "Licenses/Fredoka-OFL.txt",
     "bytes": 4388,
     "parts": [
-      "015-000.bin"
+      "016-000.bin"
     ],
     "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
   },
@@ -132,7 +140,7 @@
     "path": "Licenses/Godot-COPYRIGHT.txt",
     "bytes": 100108,
     "parts": [
-      "016-000.bin"
+      "017-000.bin"
     ],
     "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
   },
@@ -140,7 +148,7 @@
     "path": "Licenses/Godot-LICENSE.txt",
     "bytes": 1149,
     "parts": [
-      "017-000.bin"
+      "018-000.bin"
     ],
     "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
   },
@@ -148,7 +156,7 @@
     "path": "Licenses/NotoSansMath-OFL.txt",
     "bytes": 4380,
     "parts": [
-      "018-000.bin"
+      "019-000.bin"
     ],
     "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
   },
@@ -156,7 +164,7 @@
     "path": "Licenses/NotoSansSymbols-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "019-000.bin"
+      "020-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
@@ -164,8 +172,16 @@
     "path": "Licenses/NotoSansSymbols2-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "020-000.bin"
+      "021-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
+  },
+  {
+    "path": "sleeping-trio-v1.webp",
+    "bytes": 113090,
+    "parts": [
+      "022-000.bin"
+    ],
+    "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }
 ]
