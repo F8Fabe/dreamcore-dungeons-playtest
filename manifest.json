@@ -35,7 +35,7 @@
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "e85b9eda294705e7277854f6e44f4a63941b35bb3e0df2accd4ca18785b6ce64"
+    "sha256": "fed3d7782caa2a83e8e7f799c9d4600868e7ae79c7ab23e41fa8dda164558fd7"
   },
   {
     "path": "index.icon.png",
@@ -55,13 +55,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 49857392,
+    "bytes": 51346784,
     "parts": [
       "007-000.bin",
       "007-001.bin",
       "007-002.bin"
     ],
-    "sha256": "a660a0e7b928b08acba91335cff100394f16caf6b8a7073bc538eb3e5aac81fc"
+    "sha256": "f4f97b933c765000dcd9cd97440b925bd80f905238807e3dcd5ae807e9fc9b96"
   },
   {
     "path": "index.png",
@@ -103,5 +103,29 @@
       "012-000.bin"
     ],
     "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
+  },
+  {
+    "path": "Licenses/NotoSansMath-OFL.txt",
+    "bytes": 4380,
+    "parts": [
+      "013-000.bin"
+    ],
+    "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
+  },
+  {
+    "path": "Licenses/NotoSansSymbols-OFL.txt",
+    "bytes": 4383,
+    "parts": [
+      "014-000.bin"
+    ],
+    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
+  },
+  {
+    "path": "Licenses/NotoSansSymbols2-OFL.txt",
+    "bytes": 4383,
+    "parts": [
+      "015-000.bin"
+    ],
+    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   }
 ]
