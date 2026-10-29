@@ -35,7 +35,7 @@
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "9026f957f90fc50871cf9529381392a860ea00cc056ed75c5a3aec7a7aaf2043"
+    "sha256": "0c69aba18117cda288020b1fe0c57a1b4bb7d38d1a52d1105dccb6519a63b8f2"
   },
   {
     "path": "index.icon.png",
@@ -55,13 +55,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 51348676,
+    "bytes": 51348772,
     "parts": [
       "007-000.bin",
       "007-001.bin",
       "007-002.bin"
     ],
-    "sha256": "56b71d8ae8f9a31b41ab4f3cec996bdd0eb13b2204c4f76618ee38fabd1f918f"
+    "sha256": "2bf96a7a16180d5ecc38bc318a26bcd5787115fa6a98f460632e0795fbc86d69"
   },
   {
     "path": "index.png",
