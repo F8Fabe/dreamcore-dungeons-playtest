@@ -7,11 +7,11 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 239022,
+    "bytes": 246631,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "ef528374d3fe4256088c0ce99c7e136e618ce40987b1672c66be325f0b1a4c81"
+    "sha256": "c2ba3320e810900b65215324f48037317369dbd15cf207ce557d23390352af0b"
   },
   {
     "path": "diagnostics.js",
@@ -91,7 +91,7 @@
     "parts": [
       "011-000.bin"
     ],
-    "sha256": "86f0b584f49323a1c0a978d6935c24834269e4b07a62cc27452b890c1ece807b"
+    "sha256": "334a1ad292fea3ec20427e6e45ac362e3fee57c8edc0c4fb63bd00d7376adc33"
   },
   {
     "path": "index.icon.png",
@@ -111,13 +111,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 48527932,
+    "bytes": 48579568,
     "parts": [
       "014-000.bin",
       "014-001.bin",
       "014-002.bin"
     ],
-    "sha256": "cb87fe823a90f4ecf1854dbb82387d08cb201ee3511d48fd24adaef38e6c70e0"
+    "sha256": "1199fa4bd1666386f0257b34f735926178fa03a6f585d5e234b66984da45641a"
   },
   {
     "path": "index.png",
