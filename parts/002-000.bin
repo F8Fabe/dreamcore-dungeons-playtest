@@ -8,7 +8,7 @@
     if (useful) localStorage.setItem(key + '-previous', JSON.stringify(last));
     previous = useful ? last : JSON.parse(localStorage.getItem(key + '-previous'));
   } catch (_) {}
-  const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], samples: [], engine: null};
+  const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], resources: [], failures: [], samples: [], engine: null};
   let lastWrite = 0;
   function persist(immediate = false) {
     if (!immediate && Date.now() - lastWrite < 1000) return;
@@ -19,7 +19,9 @@
     const entry = {at: Date.now(), ...value};
     // Large ownership snapshots have their own small ring. An action no longer
     // serializes sixty full snapshots, nor do samples displace critical events.
-    if (entry.render) {
+    if (entry.resource) {
+      session.resources.push(entry); session.resources = session.resources.slice(-32);
+    } else if (entry.render) {
       session.samples.push(entry); session.samples = session.samples.slice(-6);
     } else {
       session.events.push(entry); session.events = session.events.slice(-100);
@@ -34,7 +36,7 @@
     persist();
   }
   function report() {
-    return JSON.stringify({schema: 3, previous, current: session, device: {
+    return JSON.stringify({schema: 4, previous, current: session, device: {
       userAgent: navigator.userAgent, width: innerWidth, height: innerHeight,
       pixelRatio: devicePixelRatio, standalone: !!navigator.standalone
     }}, null, 2);
@@ -80,6 +82,7 @@
   const failures = new Set();
   function failure(kind, message = '') {
     const first = !failures.has(kind); failures.add(kind);
+    if (first) session.failures.push({at: Date.now(), kind, message: String(message).slice(0, 500)});
     record({kind, message: String(message).slice(0, 500)}, first);
   }
   addEventListener('error', e => failure('error', e.message));
