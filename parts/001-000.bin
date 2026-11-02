@@ -1,5 +1,5 @@
 {
-  "build": "20261102T171409034892Z",
+  "build": "20261102T172106340489Z",
   "files": {
     "addons/runtime_sources/plugin.cfg": "58575f1e8fec8ca6b502acf626a5c9d7e70e770395c1c55da345ff4badee8f82",
     "addons/runtime_sources/plugin.gd": "b6a2ecc88caa076ba1f44698840c977543662548bfa9f35a81cb87e91566d83e",
@@ -1871,7 +1871,7 @@
     "scripts/icon_glow.gdshader.uid": "4592ecda70726b4cfa6f3a3da096928815b22eabacc4377df26b4334eaee6479",
     "scripts/inn_screen.gd": "2f2b1f7f739a1f42bcf4a55300265bd9cb0040fcf704a166f982f5b5ab130dba",
     "scripts/inn_screen.gd.uid": "93c7651ec5cd310b8672bf46f1a70b667909797e49fc8db57cb42e2a549c646f",
-    "scripts/inventory_board.gd": "958f9fccb79598bee55f3900e5c7984ba250d59b521801fc02500a5aee89df84",
+    "scripts/inventory_board.gd": "502cdb5b94958e896774fa3e1037a7d0d97ef54ba77b7943629147448980e5e2",
     "scripts/inventory_board.gd.uid": "dcfa36a30da3d81400d87b1431127cc904aee47db4ab8c0a4dd605a40d0bc74a",
     "scripts/inventory_model.gd": "bd2c88aaa1b83fcb81961b147e75fa5d7d36069e215a6f7ef6dcc6bc69e172b8",
     "scripts/inventory_model.gd.uid": "717cb002541a468b6303d97b577aaf072db5832a1a1380a14395c222b737bbb0",
@@ -1947,7 +1947,7 @@
     "scripts/loot_chest_button.gd.uid": "c08487ace2d108b533ce3623d359d1a8ba92dbd26146842291c686f2c3c7c78d",
     "scripts/loot_presenter.gd": "609855432ecbc8b8683a4d58732c9869160065614878a42ba86eb7641a17878d",
     "scripts/loot_presenter.gd.uid": "9bb0c8c72a10f89ee8bc40a9bc9f613dd67f165e560fe058c363e4109a7c62f1",
-    "scripts/loot_reward_screen.gd": "22e65f574c3f1a4b40a61480d877e0dc70f32f00eed233f2c2eb8995ee87043f",
+    "scripts/loot_reward_screen.gd": "3c901fd093bbdcf7c78074254f5c184fa1dea14d032783ffc24a17d507b8e8b4",
     "scripts/loot_reward_screen.gd.uid": "39b432fc65167e918d574a208473214a8552e8b1905df4704c77143a86e5701b",
     "scripts/loot_screen.gd": "c2c8645e8533d4cbba650fa36dee62c36ceda486ae002be9aa1d0358eb391b4f",
     "scripts/loot_screen.gd.uid": "e74a622b8bf646a6a819c4d79ff1ab011704a3d1a6f63c886c7488e05506ed5f",

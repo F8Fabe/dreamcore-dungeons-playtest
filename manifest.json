@@ -11,7 +11,7 @@
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "914a0ea306e06770b3491fabc3f6b2feabd3ec3e6a38326b5f8b6306334587bd"
+    "sha256": "4cae0193dbd041aa67ef9c84f1449c8350991a85474ad8d531d14710b5609592"
   },
   {
     "path": "diagnostics.js",
@@ -91,7 +91,7 @@
     "parts": [
       "011-000.bin"
     ],
-    "sha256": "8395a05e0da6dcecdbbc6a8a578136749eb32283f04e0a2ee8e48240aaebdd3e"
+    "sha256": "40aae92866164d581d594ee416c73bd1874a0d289746680a705b9624daec40dc"
   },
   {
     "path": "index.icon.png",
@@ -111,13 +111,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 49097364,
+    "bytes": 49103396,
     "parts": [
       "014-000.bin",
       "014-001.bin",
       "014-002.bin"
     ],
-    "sha256": "da556b6c548b7262f70f0237fab22373b1db90cef02b43b8da99b76193b6c1d3"
+    "sha256": "2d8d8bf15ef2cf1ffd0d0d2a38cae9af5c2fb054c0bdc4edf538eb92c470035d"
   },
   {
     "path": "index.png",
