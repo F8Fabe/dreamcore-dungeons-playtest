@@ -1,5 +1,18 @@
 /* Bounded local-only breadcrumbs. No telemetry, network calls or save manipulation. */
 (() => {
+  let savedExperiment = 'baseline';
+  try { savedExperiment = localStorage.getItem('dreamcore-render-experiment') || 'baseline'; } catch (_) {}
+  const requested = new URLSearchParams(location.search).get('render-test') || savedExperiment;
+  const experiment = ['no-audio', 'no-blur', 'dpr2'].includes(requested) ? requested : 'baseline';
+  window.dreamRenderExperiment = experiment;
+  const nativePixelRatio = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1;
+  let effectivePixelRatio = nativePixelRatio;
+  if (experiment === 'dpr2') {
+    try {
+      Object.defineProperty(window, 'devicePixelRatio', {configurable: true, get: () => Math.min(nativePixelRatio, 2)});
+      effectivePixelRatio = window.devicePixelRatio;
+    } catch (_) {} // Report the actual result rather than pretending the cap worked.
+  }
   const key = 'dreamcore-render-diagnostics-v1';
   let previous = null;
   try {
@@ -8,7 +21,7 @@
     if (useful) localStorage.setItem(key + '-previous', JSON.stringify(last));
     previous = useful ? last : JSON.parse(localStorage.getItem(key + '-previous'));
   } catch (_) {}
-  const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], resources: [], failures: [], samples: [], engine: null};
+  const session = {experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], resources: [], failures: [], samples: [], engine: null};
   let lastWrite = 0;
   function persist(immediate = false) {
     if (!immediate && Date.now() - lastWrite < 1000) return;
@@ -47,6 +60,20 @@
     panel.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#211c30;color:#f9f1ff;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));font:16px system-ui;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:auto';
     const title = document.createElement('strong'); title.textContent = 'Dreamcore Diagnostics'; panel.appendChild(title);
     const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. No upload happens automatically.'; panel.appendChild(note);
+    const selector = document.createElement('select');
+    for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Audio vollständig aus'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
+      const option = document.createElement('option'); option.value = value; option.textContent = label;
+      selector.appendChild(option);
+    }
+    selector.value = experiment; selector.setAttribute('aria-label', 'Vergleichstest'); panel.appendChild(selector);
+    button('Gewählten Test speichern und neu starten', () => {
+      try { localStorage.setItem('dreamcore-render-experiment', selector.value); } catch (_) {}
+      const target = new URL(location.href); target.searchParams.set('render-test', selector.value);
+      location.href = target.href;
+    });
+    const restartNote = document.createElement('div');
+    restartNote.textContent = 'Neustart lädt den letzten Spielstand. Bitte jeweils nur einen Test vergleichen; Normal setzt die Teständerungen zurück.';
+    panel.appendChild(restartNote);
     const field = document.createElement('textarea'); field.readOnly = true; field.value = report();
     field.style.cssText = 'min-height:140px;flex:1;font:12px monospace;background:#130f20;color:#eee;border:1px solid #a38bc4'; panel.appendChild(field);
     const status = document.createElement('div'); panel.appendChild(status);
