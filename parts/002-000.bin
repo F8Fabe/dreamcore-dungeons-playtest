@@ -4,22 +4,37 @@
   let previous = null;
   try {
     const last = JSON.parse(localStorage.getItem(key));
-    const useful = last?.events?.some(e => !['start', 'visibility'].includes(e.kind));
+    const useful = last?.engine || last?.samples?.length || last?.events?.some(e => !['start', 'visibility'].includes(e.kind));
     if (useful) localStorage.setItem(key + '-previous', JSON.stringify(last));
     previous = useful ? last : JSON.parse(localStorage.getItem(key + '-previous'));
   } catch (_) {}
-  const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: []};
+  const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], samples: [], engine: null};
   let lastWrite = 0;
-  function record(value, immediate = false) {
-    session.events.push({at: Date.now(), ...value});
-    session.events = session.events.slice(-60);
-    // Error storms must not turn diagnostics into another performance problem.
+  function persist(immediate = false) {
     if (!immediate && Date.now() - lastWrite < 1000) return;
     lastWrite = Date.now();
     try { localStorage.setItem(key, JSON.stringify(session)); } catch (_) {}
   }
+  function record(value, immediate = false) {
+    const entry = {at: Date.now(), ...value};
+    // Large ownership snapshots have their own small ring. An action no longer
+    // serializes sixty full snapshots, nor do samples displace critical events.
+    if (entry.render) {
+      session.samples.push(entry); session.samples = session.samples.slice(-6);
+    } else {
+      session.events.push(entry); session.events = session.events.slice(-100);
+    }
+    persist(immediate);
+  }
+  function heartbeat(value) {
+    const canvas = document.getElementById('canvas');
+    session.engine = {at: Date.now(), ...value,
+      canvas: canvas ? {width: canvas.width, height: canvas.height} : null,
+      visibility: document.visibilityState};
+    persist();
+  }
   function report() {
-    return JSON.stringify({schema: 2, previous, current: session, device: {
+    return JSON.stringify({schema: 3, previous, current: session, device: {
       userAgent: navigator.userAgent, width: innerWidth, height: innerHeight,
       pixelRatio: devicePixelRatio, standalone: !!navigator.standalone
     }}, null, 2);
@@ -54,16 +69,25 @@
     button('Back to game', () => panel.remove());
     document.body.appendChild(panel);
   }
-  window.dreamDiagnostics = {record, previous, current: session, open, download() {
+  window.dreamDiagnostics = {record, heartbeat, failure, previous, current: session, open, download() {
     const blob = new Blob([report()], {type: 'application/json'});
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = 'dreamcore-diagnostics.json'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }};
-  addEventListener('error', e => record({kind: 'error', message: String(e.message).slice(0, 500)}));
-  addEventListener('unhandledrejection', e => record({kind: 'rejection', message: String(e.reason).slice(0, 500)}));
-  document.addEventListener('webglcontextlost', () => record({kind: 'webglcontextlost'}), true);
-  document.addEventListener('visibilitychange', () => record({kind: 'visibility', state: document.visibilityState}));
+  // Persist the first failure of each type even directly after a normal mark.
+  // Previously the one-second throttle could lose the only clue before a reload.
+  const failures = new Set();
+  function failure(kind, message = '') {
+    const first = !failures.has(kind); failures.add(kind);
+    record({kind, message: String(message).slice(0, 500)}, first);
+  }
+  addEventListener('error', e => failure('error', e.message));
+  addEventListener('unhandledrejection', e => failure('rejection', e.reason));
+  document.addEventListener('webglcontextlost', e => failure('webglcontextlost', e.statusMessage), true);
+  document.addEventListener('visibilitychange', () => record({kind: 'visibility', state: document.visibilityState}, true));
+  addEventListener('pagehide', e => record({kind: 'pagehide', persisted: !!e.persisted}, true));
+  document.addEventListener('webglcontextrestored', () => record({kind: 'webglcontextrestored'}, true), true);
   record({kind: 'start'});
   // Explicit opt-in link for a mobile report, without opening browser developer tools.
   if (new URLSearchParams(location.search).has('diagnostics')) {
