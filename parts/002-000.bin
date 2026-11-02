@@ -2,19 +2,60 @@
 (() => {
   const key = 'dreamcore-render-diagnostics-v1';
   let previous = null;
-  try { previous = JSON.parse(localStorage.getItem(key)); } catch (_) {}
+  try {
+    const last = JSON.parse(localStorage.getItem(key));
+    const useful = last?.events?.some(e => !['start', 'visibility'].includes(e.kind));
+    if (useful) localStorage.setItem(key + '-previous', JSON.stringify(last));
+    previous = useful ? last : JSON.parse(localStorage.getItem(key + '-previous'));
+  } catch (_) {}
   const session = {build: document.documentElement.dataset.build || 'local', started: Date.now(), events: []};
   let lastWrite = 0;
-  function record(value) {
+  function record(value, immediate = false) {
     session.events.push({at: Date.now(), ...value});
     session.events = session.events.slice(-60);
     // Error storms must not turn diagnostics into another performance problem.
-    if (Date.now() - lastWrite < 1000) return;
+    if (!immediate && Date.now() - lastWrite < 1000) return;
     lastWrite = Date.now();
     try { localStorage.setItem(key, JSON.stringify(session)); } catch (_) {}
   }
-  window.dreamDiagnostics = {record, previous, current: session, download() {
-    const blob = new Blob([JSON.stringify({previous, current: session}, null, 2)], {type: 'application/json'});
+  function report() {
+    return JSON.stringify({schema: 2, previous, current: session, device: {
+      userAgent: navigator.userAgent, width: innerWidth, height: innerHeight,
+      pixelRatio: devicePixelRatio, standalone: !!navigator.standalone
+    }}, null, 2);
+  }
+  function open() {
+    document.getElementById('dream-diagnostics-panel')?.remove();
+    const panel = document.createElement('section'); panel.id = 'dream-diagnostics-panel';
+    panel.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#211c30;color:#f9f1ff;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));font:16px system-ui;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:auto';
+    const title = document.createElement('strong'); title.textContent = 'Dreamcore Diagnostics'; panel.appendChild(title);
+    const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. No upload happens automatically.'; panel.appendChild(note);
+    const field = document.createElement('textarea'); field.readOnly = true; field.value = report();
+    field.style.cssText = 'min-height:140px;flex:1;font:12px monospace;background:#130f20;color:#eee;border:1px solid #a38bc4'; panel.appendChild(field);
+    const status = document.createElement('div'); panel.appendChild(status);
+    function button(label, action) {
+      const b = document.createElement('button'); b.textContent = label;
+      b.style.cssText = 'padding:12px;background:#baa3df;color:#211c30;border:0;border-radius:10px;font:inherit;flex-shrink:0';
+      b.onclick = action; panel.appendChild(b);
+    }
+    button('Share report', async () => {
+      try {
+        const file = new File([field.value], 'dreamcore-diagnostics.json', {type: 'application/json'});
+        if (navigator.canShare?.({files: [file]})) await navigator.share({files: [file], title: 'Dreamcore Diagnostics'});
+        else if (navigator.share) await navigator.share({text: field.value, title: 'Dreamcore Diagnostics'});
+        else status.textContent = 'Sharing unavailable here. Copy or save the report below.';
+      } catch (e) { status.textContent = e.name === 'AbortError' ? 'Sharing cancelled.' : 'Sharing failed. Copy or save the report instead.'; }
+    });
+    button('Copy report', async () => {
+      try { await navigator.clipboard.writeText(field.value); status.textContent = 'Copied!'; }
+      catch (_) { field.focus(); field.select(); status.textContent = 'Select the report text and copy it manually.'; }
+    });
+    button('Save JSON file', () => window.dreamDiagnostics.download());
+    button('Back to game', () => panel.remove());
+    document.body.appendChild(panel);
+  }
+  window.dreamDiagnostics = {record, previous, current: session, open, download() {
+    const blob = new Blob([report()], {type: 'application/json'});
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = 'dreamcore-diagnostics.json'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -29,7 +70,7 @@
     addEventListener('DOMContentLoaded', () => {
       const button = document.createElement('button'); button.textContent = 'Diagnose speichern';
       button.style.cssText = 'position:fixed;right:8px;top:8px;z-index:10000';
-      button.onclick = () => window.dreamDiagnostics.download(); document.body.appendChild(button);
+      button.onclick = () => window.dreamDiagnostics.open(); document.body.appendChild(button);
     });
   }
 })();

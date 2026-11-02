@@ -7,19 +7,19 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 248125,
+    "bytes": 275264,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "4119c9506fca339469c0f4a4b130297eaea767a52746627f07d870ebc6eeabe2"
+    "sha256": "be73eeae011a8db2c7516f80f7604c6ad48e5cff0c40de16be3c16757e506f53"
   },
   {
     "path": "diagnostics.js",
-    "bytes": 2111,
+    "bytes": 5200,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "f419a0705d28dbfaf3b7b73d240354940fbc206c6ee5af7ad2b4d0f932f4f7be"
+    "sha256": "79607c3768664ce0d2231f3e5e1d736d7e10b9c447d5b9937d5d2a2acd6f0cb8"
   },
   {
     "path": "dreamcore-180.png",
@@ -91,7 +91,7 @@
     "parts": [
       "011-000.bin"
     ],
-    "sha256": "8e9dfef55bbebc741e59ee7a96cfccb2a0a880e333812777d9597194300bc76b"
+    "sha256": "c0da5098e8d81414a8e8a447d4899aed768a864f6f722e5714c0cd8a2094a9fb"
   },
   {
     "path": "index.icon.png",
@@ -111,13 +111,13 @@
   },
   {
     "path": "index.pck",
-    "bytes": 48633568,
+    "bytes": 49300200,
     "parts": [
       "014-000.bin",
       "014-001.bin",
       "014-002.bin"
     ],
-    "sha256": "e97b62addbb98d335d8a94d8808975bfb55e84685a53c6d6639019873b06f160"
+    "sha256": "b0e56e526195c715afd9834774b298c556869ed90de0449abbe0b47364c24bb7"
   },
   {
     "path": "index.png",
