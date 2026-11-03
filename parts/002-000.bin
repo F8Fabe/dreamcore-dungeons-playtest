@@ -180,7 +180,7 @@
       width:innerWidth, height:innerHeight, pixelRatio:devicePixelRatio, standalone:!!navigator.standalone
     }, memory_scope:{process_resident_bytes:null, process_resident_status:'not_exposed_by_this_probe',
       warning:'Do not add WASM, textures, PCM and filesystem estimates: ownership can overlap. Live engine references do not measure browser-retained or driver memory. PCM sums may share buffers. Truncated scans are lower bounds.',
-      runtime_probe:'Godot 4.7.2 private interface v1; standard only, at most once per 10 seconds; no buffer copies or GPU queries'}, limits:{timeline_points:60, nominal_timeline_interval_ms:10000, storage_utf16_bytes:131072, ordinary_write_interval_ms:mode === 'minimal' ? 5000 : 1000,
+      runtime_probe:'Godot 4.7.2 private interface v3; standard only, at most once per 10 seconds; GL slots are table lengths, truncated live counts are lower bounds; no buffer copies or GPU queries'}, limits:{timeline_points:60, nominal_timeline_interval_ms:10000, storage_utf16_bytes:131072, ordinary_write_interval_ms:mode === 'minimal' ? 5000 : 1000,
       note:'Sampled peaks only. Unknown end is not proof of a crash. Gameplay replay does not reproduce browser resource history.'}}, null, 2);
   }
   function open() {
