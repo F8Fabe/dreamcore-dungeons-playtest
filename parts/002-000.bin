@@ -70,7 +70,7 @@
     if (!history.some(e => e.started === last.started && e.build === last.build)) push(history, summary(last), 8);
     try { localStorage.setItem(key + '-previous', JSON.stringify(last)); localStorage.setItem(key + '-history', JSON.stringify(history)); } catch (_) {}
   }
-  const session = {mode, experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local',
+  const session = {schema:7, mode, experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local',
     started: Date.now(), events: [], resources: [], failures: [], samples: [], timeline: [], engine: null,
     end: {kind:'unknown'}, totals: {heartbeats:0, run_changes:0, room_changes:0, menu_changes:0, hidden:0, events:Object.create(null)},
     overhead: {writes:0, write_errors:0, serialized_chars:0, max_write_ms:0, total_write_ms:0, dropped_for_budget:0}};
@@ -84,6 +84,22 @@
     if (capacity !== null) wasmPeak = Math.max(wasmPeak, capacity);
     return {wasm_capacity_bytes: capacity, wasm_peak_capacity_bytes: wasmPeak || null, packaged_file_bytes: packBytes};
   }
+  let lastRuntimeProbe = -Infinity, runtimeSnapshot = null;
+  function runtimeMemory() {
+    if (mode !== 'standard') return {status:'disabled_for_mode'};
+    if (clock()-lastRuntimeProbe < 10000) return runtimeSnapshot;
+    lastRuntimeProbe=clock();
+    const start=clock();
+    runtimeSnapshot={status:'unavailable',at:Date.now(),data:null,cost_ms:0};
+    try {
+      if (typeof runtimeEngine?.rtenv?.dreamMemoryProbe === 'function') {
+        runtimeSnapshot.data=bounded(runtimeEngine.rtenv.dreamMemoryProbe());
+        runtimeSnapshot.status='available';
+      }
+    } catch (_) {runtimeSnapshot.status='probe_error';}
+    runtimeSnapshot.cost_ms=Math.max(0,clock()-start);
+    return runtimeSnapshot;
+  }
   function attachEngine(engine, bytes) {
     runtimeEngine = engine; packBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : null;
   }
@@ -95,10 +111,12 @@
     const started = clock();
     try {
       let text = JSON.stringify(session);
-      // Bound UTF-16 payload to 128 KiB. Shed history before current evidence.
-      for (const ring of [session.samples, session.resources, session.events, session.timeline]) {
-        while (text.length > 65536 && ring.length) {
-          ring.splice(0, Math.max(1, Math.ceil(ring.length / 2)));
+      // Preserve recent ownership evidence: old event detail must not erase all samples.
+      for (const [name, keep] of [['events',12],['resources',4],['samples',2],['timeline',12],
+                                  ['events',2],['resources',0],['timeline',1],['samples',1]]) {
+        const ring=session[name];
+        while (text.length > 65536 && ring.length > keep) {
+          ring.splice(0, Math.min(ring.length-keep,Math.max(1,Math.ceil(ring.length/2))));
           session.overhead.dropped_for_budget++;
           text = JSON.stringify(session);
         }
@@ -128,7 +146,7 @@
     if (mode === 'off') return;
     const canvas = document.getElementById('canvas');
     const next = {...bounded(value), at:Date.now(), age_ms:Math.max(0, Date.now()-session.started),
-      canvas:canvas ? {width:canvas.width,height:canvas.height} : null, visibility:document.visibilityState, memory:memory()};
+      runtime:runtimeMemory(), canvas:canvas ? {width:canvas.width,height:canvas.height} : null, visibility:document.visibilityState, memory:memory()};
     if (lastPulse) {
       if (next.run_id !== lastPulse.run_id) session.totals.run_changes++;
       if (next.run_id !== lastPulse.run_id || next.dungeon !== lastPulse.dungeon || next.room !== lastPulse.room) session.totals.room_changes++;
@@ -157,10 +175,12 @@
     if (clock()-lastLifecycleWrite >= 250) { persist(true);lastLifecycleWrite=clock(); }
   }
   function report() {
-    return JSON.stringify({schema:6, previous, history, current:session, device:{
+    return JSON.stringify({schema:7, previous, history, current:session, device:{
       userAgent:navigator.userAgent, os_version_source:'User-Agent is not authoritative; record Settings > About separately',
       width:innerWidth, height:innerHeight, pixelRatio:devicePixelRatio, standalone:!!navigator.standalone
-    }, limits:{timeline_points:60, nominal_timeline_interval_ms:10000, storage_utf16_bytes:131072, ordinary_write_interval_ms:mode === 'minimal' ? 5000 : 1000,
+    }, memory_scope:{process_resident_bytes:null, process_resident_status:'not_exposed_by_this_probe',
+      warning:'Do not add WASM, textures, PCM and filesystem estimates: ownership can overlap. Live engine references do not measure browser-retained or driver memory. PCM sums may share buffers. Truncated scans are lower bounds.',
+      runtime_probe:'Godot 4.7.2 private interface v1; standard only, at most once per 10 seconds; no buffer copies or GPU queries'}, limits:{timeline_points:60, nominal_timeline_interval_ms:10000, storage_utf16_bytes:131072, ordinary_write_interval_ms:mode === 'minimal' ? 5000 : 1000,
       note:'Sampled peaks only. Unknown end is not proof of a crash. Gameplay replay does not reproduce browser resource history.'}}, null, 2);
   }
   function open() {
@@ -173,15 +193,16 @@
     const old = previous;
     overview.textContent = `Aktuell: ${mode}, Spieltest ${experiment}, Build ${session.build}. ${session.totals.run_changes} beobachtete Run-Wechsel, ${session.totals.room_changes} Raum-/Run-Wechsel. Letzte Sitzung: ${old ? new Date(old.started).toLocaleString() + ', ' + (old.mode || 'legacy') + ', Ende: ' + (old.end?.kind || 'unknown') : 'keine'}. ${history.length} Sitzungs\u00fcbersichten gespeichert. Diagnose aus erzeugt keine neue Sitzungsspur.`;
     panel.appendChild(overview);
+    const memoryNote=document.createElement('div');
+    memoryNote.textContent='Speichersuche: Standard erfasst alle 10 Sekunden Audio-, Datei- und WebGL-Bestaende. Kopierzaehler zeigen erzeugte Audiodaten, nicht belegten RAM. Gesamtprozessspeicher und interne Browser-Rueckhaltung bleiben unbekannt. Minimal deaktiviert diese Zusatzmessung.';
+    panel.appendChild(memoryNote);
     const selector = document.createElement('select');
     for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Spielsounds aus'],['stream-audio','Test: Gleiche Sounds mit Stream-Mixing'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
       const option = document.createElement('option'); option.value = value; option.textContent = label;
       selector.appendChild(option);
     }
+    const renderLabel = document.createElement('div'); renderLabel.textContent = 'Spiel-Darstellung (Normal = unveraendertes Spiel)'; panel.appendChild(renderLabel);
     selector.value = experiment; selector.setAttribute('aria-label', 'Vergleichstest'); panel.appendChild(selector);
-    button('Gewählten Test speichern und neu starten', () => {
-      restart(selector.value, mode);
-    });
     const restartNote = document.createElement('div');
     restartNote.textContent = 'Neustart lädt den letzten Spielstand. Bitte jeweils nur einen Test vergleichen; Normal setzt die Teständerungen zurück.';
     panel.appendChild(restartNote);
@@ -189,8 +210,9 @@
     for (const [value,label] of [['standard','Diagnose: Standard'],['minimal','Diagnose: Minimal'],['off','Diagnose: Aus']]) {
       const option = document.createElement('option'); option.value=value; option.textContent=label; diagnosticSelector.appendChild(option);
     }
+    const modeLabel = document.createElement('div'); modeLabel.textContent = 'Diagnose-Aufwand (unabhaengig von der Darstellung)'; panel.appendChild(modeLabel);
     diagnosticSelector.value=mode; diagnosticSelector.setAttribute('aria-label','Diagnose-Aufwand'); panel.appendChild(diagnosticSelector);
-    button('Diagnose-Stufe \u00fcbernehmen und neu starten', () => restart(experiment, diagnosticSelector.value));
+    button('Beide Einstellungen speichern und neu starten', () => restart(selector.value, diagnosticSelector.value));
     const modeNote=document.createElement('div');
     modeNote.textContent='Standard: Verlauf und Details. Minimal: Status alle 5 Sekunden, keine Ressourcen-Inventur. Aus: keine laufende Aufzeichnung. Neustart setzt Browserressourcen zur\u00fcck; er spielt den Crash nicht nach. Unbekanntes Sitzungsende beweist keinen Crash.';
     panel.appendChild(modeNote);
