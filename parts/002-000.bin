@@ -3,7 +3,7 @@
   let savedExperiment = 'baseline';
   try { savedExperiment = localStorage.getItem('dreamcore-render-experiment') || 'baseline'; } catch (_) {}
   const requested = new URLSearchParams(location.search).get('render-test') || savedExperiment;
-  const experiment = ['no-audio', 'no-blur', 'dpr2'].includes(requested) ? requested : 'baseline';
+  const experiment = ['no-audio', 'stream-audio', 'no-blur', 'dpr2'].includes(requested) ? requested : 'baseline';
   window.dreamRenderExperiment = experiment;
   const nativePixelRatio = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1;
   let effectivePixelRatio = nativePixelRatio;
@@ -13,65 +13,155 @@
       effectivePixelRatio = window.devicePixelRatio;
     } catch (_) {} // Report the actual result rather than pretending the cap worked.
   }
-  const key = 'dreamcore-render-diagnostics-v1';
+  const legacyKey = 'dreamcore-render-diagnostics-v1';
+  const key = 'dreamcore-render-diagnostics-v6';
+  const modeKey = 'dreamcore-diagnostic-mode';
+  let savedMode = 'standard';
+  try { savedMode = localStorage.getItem(modeKey) || savedMode; } catch (_) {}
+  const chosenMode = new URLSearchParams(location.search).get('diagnostic-mode') || savedMode;
+  const mode = ['standard', 'minimal', 'off'].includes(chosenMode) ? chosenMode : 'standard';
+  window.dreamDiagnosticMode = mode;
+  const clock = () => globalThis.performance?.now?.() ?? Date.now();
+  const push = (array, value, limit) => { array.push(value); if (array.length > limit) array.shift(); };
+  // Detach values and cap nesting, field count and strings before retention.
+  function bounded(value, depth = 0, budget = {left:8192}) {
+    if (budget.left <= 0) return '[size limit]';
+    budget.left -= 16;
+    if (typeof value === 'string') { const text=value.slice(0,Math.max(0,Math.min(512,budget.left)));budget.left-=text.length;return text; }
+    if (value === null || typeof value === 'boolean' || typeof value === 'number') return value;
+    if (depth > 5) return '[depth limit]';
+    if (Array.isArray(value)) return value.slice(0, 16).map(v => bounded(v, depth + 1, budget));
+    if (value && typeof value === 'object') {
+      const result = {};
+      for (const name of Object.keys(value).slice(0, 64)) {
+        if (budget.left <= 0) break;
+        if (['__proto__', 'constructor', 'prototype'].includes(name)) continue;
+        budget.left -= Math.min(name.length,80);
+        result[name.slice(0, 80)] = bounded(value[name], depth + 1, budget);
+      }
+      return result;
+    }
+    return null;
+  }
+  function read(name) {
+    try { const text = localStorage.getItem(name); return text && text.length <= 262144 ? JSON.parse(text) : null; } catch (_) { return null; }
+  }
+  function readSession(name) {
+    const value=read(name);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    for (const field of ['events','samples','failures','resources','timeline']) {
+      if (value[field] !== undefined && (!Array.isArray(value[field]) || value[field].some(e => !e || typeof e !== 'object' || Array.isArray(e)))) return null;
+    }
+    return value;
+  }
+  function summary(value) {
+    return {started: value.started, build: value.build, mode: value.mode || 'legacy', experiment: value.experiment,
+      last_at: value.engine?.at || value.events?.at(-1)?.at, last_engine: bounded(value.engine),
+      totals: bounded(value.totals), overhead: bounded(value.overhead), end: bounded(value.end || {kind:'unknown'}),
+      failure_kinds: (value.failures || []).slice(0, 8).map(e => e.kind)};
+  }
   let previous = null;
-  try {
-    const last = JSON.parse(localStorage.getItem(key));
-    const useful = last?.engine || last?.samples?.length || last?.events?.some(e => !['start', 'visibility'].includes(e.kind));
-    if (useful) localStorage.setItem(key + '-previous', JSON.stringify(last));
-    previous = useful ? last : JSON.parse(localStorage.getItem(key + '-previous'));
-  } catch (_) {}
-  const session = {experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], resources: [], failures: [], samples: [], engine: null};
-  let lastWrite = 0;
-  let runtimeEngine = null;
-  let wasmPeak = 0;
-  let packBytes = null;
-  // Capacity, not live allocations or total process RAM. Emscripten replaces
-  // HEAPU8 after growth: never retain a view or its backing buffer here.
+  let history = read(key + '-history');
+  history = Array.isArray(history) ? history.filter(e => e && typeof e === 'object' && !Array.isArray(e)).slice(-8) : [];
+  const last = readSession(key) || readSession(legacyKey);
+  const useful = last?.engine || last?.samples?.length || last?.events?.some(e => !['start', 'visibility'].includes(e.kind));
+  previous = useful ? last : (readSession(key + '-previous') || readSession(legacyKey + '-previous'));
+  if (useful && mode !== 'off') {
+    if (!history.some(e => e.started === last.started && e.build === last.build)) push(history, summary(last), 8);
+    try { localStorage.setItem(key + '-previous', JSON.stringify(last)); localStorage.setItem(key + '-history', JSON.stringify(history)); } catch (_) {}
+  }
+  const session = {mode, experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local',
+    started: Date.now(), events: [], resources: [], failures: [], samples: [], timeline: [], engine: null,
+    end: {kind:'unknown'}, totals: {heartbeats:0, run_changes:0, room_changes:0, menu_changes:0, hidden:0, events:Object.create(null)},
+    overhead: {writes:0, write_errors:0, serialized_chars:0, max_write_ms:0, total_write_ms:0, dropped_for_budget:0}};
+  let lastWrite = -Infinity, lastTrend = -Infinity, lastPulse = null, lastLifecycleWrite = -Infinity;
+  let runtimeEngine = null, wasmPeak = 0, packBytes = null;
+  let trendMaxFrame = 0, trendSlowFrames = 0;
+  // Capacity, not live allocations or total process RAM. Never retain a HEAP view.
   function memory() {
     let capacity = null;
-    try {
-      const size = runtimeEngine?.rtenv?.HEAPU8?.buffer?.byteLength;
-      if (Number.isFinite(size) && size > 0) capacity = size;
-    } catch (_) {}
+    try { const size = runtimeEngine?.rtenv?.HEAPU8?.buffer?.byteLength; if (Number.isFinite(size) && size > 0) capacity = size; } catch (_) {}
     if (capacity !== null) wasmPeak = Math.max(wasmPeak, capacity);
-    return {wasm_capacity_bytes: capacity, wasm_peak_capacity_bytes: wasmPeak || null,
-      packaged_file_bytes: packBytes};
+    return {wasm_capacity_bytes: capacity, wasm_peak_capacity_bytes: wasmPeak || null, packaged_file_bytes: packBytes};
   }
   function attachEngine(engine, bytes) {
-    runtimeEngine = engine;
-    packBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : null;
+    runtimeEngine = engine; packBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : null;
   }
-  function persist(immediate = false) {
-    if (!immediate && Date.now() - lastWrite < 1000) return;
-    lastWrite = Date.now();
-    try { localStorage.setItem(key, JSON.stringify(session)); } catch (_) {}
+  function persist(urgent = false) {
+    if (mode === 'off') return;
+    const now = clock();
+    if (!urgent && now - lastWrite < (mode === 'minimal' ? 5000 : 1000)) return;
+    lastWrite = now;
+    const started = clock();
+    try {
+      let text = JSON.stringify(session);
+      // Bound UTF-16 payload to 128 KiB. Shed history before current evidence.
+      for (const ring of [session.samples, session.resources, session.events, session.timeline]) {
+        while (text.length > 65536 && ring.length) {
+          ring.splice(0, Math.max(1, Math.ceil(ring.length / 2)));
+          session.overhead.dropped_for_budget++;
+          text = JSON.stringify(session);
+        }
+      }
+      if (text.length > 65536) { session.overhead.write_errors++; return; }
+      localStorage.setItem(key, text);
+      session.overhead.writes++; session.overhead.serialized_chars = text.length;
+    } catch (_) { session.overhead.write_errors++; }
+    const cost = Math.max(0, clock() - started);
+    session.overhead.max_write_ms = Math.max(session.overhead.max_write_ms, cost);
+    session.overhead.total_write_ms += cost;
   }
-  function record(value, immediate = false) {
-    const entry = {at: Date.now(), ...value, memory: memory()};
-    // Large ownership snapshots have their own small ring. An action no longer
-    // serializes sixty full snapshots, nor do samples displace critical events.
-    if (entry.resource) {
-      session.resources.push(entry); session.resources = session.resources.slice(-32);
-    } else if (entry.render) {
-      session.samples.push(entry); session.samples = session.samples.slice(-6);
-    } else {
-      session.events.push(entry); session.events = session.events.slice(-100);
-    }
-    persist(immediate);
+  function record(value, _legacyImmediate = false) {
+    if (mode === 'off') return;
+    if (mode === 'minimal' && !['start','visibility','pagehide','pageshow','restart_requested','engine_exit'].includes(value.kind)) return;
+    const entry = {...bounded(value), at:Date.now(), age_ms:Math.max(0, Date.now()-session.started), memory:memory()};
+    const name = String(entry.kind || 'sample').slice(0, 80);
+    const counts = session.totals.events;
+    if (Object.hasOwn(counts, name) || Object.keys(counts).length < 64) counts[name] = (counts[name] || 0) + 1;
+    if (entry.resource) push(session.resources, entry, 32);
+    else if (entry.render) push(session.samples, entry, 6);
+    else push(session.events, entry, 100);
+    if (entry.kind === 'engine_exit') { session.end = {kind:'engine_exit', code:entry.code, at:entry.at}; persist(true); }
+    else persist(); // Ordinary marks never bypass the write budget.
   }
   function heartbeat(value) {
+    if (mode === 'off') return;
     const canvas = document.getElementById('canvas');
-    session.engine = {at: Date.now(), ...value,
-      canvas: canvas ? {width: canvas.width, height: canvas.height} : null,
-      visibility: document.visibilityState, memory: memory()};
+    const next = {...bounded(value), at:Date.now(), age_ms:Math.max(0, Date.now()-session.started),
+      canvas:canvas ? {width:canvas.width,height:canvas.height} : null, visibility:document.visibilityState, memory:memory()};
+    if (lastPulse) {
+      if (next.run_id !== lastPulse.run_id) session.totals.run_changes++;
+      if (next.run_id !== lastPulse.run_id || next.dungeon !== lastPulse.dungeon || next.room !== lastPulse.room) session.totals.room_changes++;
+      if (next.menu !== lastPulse.menu) session.totals.menu_changes++;
+      next.heartbeat_gap_ms = Math.max(0, next.at-lastPulse.at); // Includes background/suspension, not necessarily a stall.
+    }
+    session.totals.heartbeats++;
+    const maximum = Number.isFinite(next.frame_window_max_ms) ? next.frame_window_max_ms : 0;
+    const slow = Number.isFinite(next.frames_over_100ms) ? next.frames_over_100ms : 0;
+    trendMaxFrame = Math.max(trendMaxFrame, maximum); trendSlowFrames += slow;
+    session.totals.observed_frame_max_ms = Math.max(session.totals.observed_frame_max_ms || 0, maximum);
+    session.totals.frames_over_100ms = (session.totals.frames_over_100ms || 0) + slow;
+    session.engine = next; lastPulse = next;
+    if (clock()-lastTrend >= 10000) {
+      push(session.timeline, {...next, trend_frame_max_ms:trendMaxFrame, trend_frames_over_100ms:trendSlowFrames}, 60);
+      lastTrend = clock();trendMaxFrame=0;trendSlowFrames=0;
+    }
     persist();
   }
+  function lifecycle(kind, details = {}) {
+    if (mode === 'off') return;
+    if (kind === 'visibility' && details.state === 'hidden') session.totals.hidden++;
+    if (kind === 'pagehide' && session.end.kind !== 'restart_requested') session.end = {kind:'pagehide', persisted:!!details.persisted, at:Date.now()};
+    if (kind === 'pageshow') session.end = {kind:'unknown'};
+    record({kind,...details});
+    if (clock()-lastLifecycleWrite >= 250) { persist(true);lastLifecycleWrite=clock(); }
+  }
   function report() {
-    return JSON.stringify({schema: 5, previous, current: session, device: {
-      userAgent: navigator.userAgent, width: innerWidth, height: innerHeight,
-      pixelRatio: devicePixelRatio, standalone: !!navigator.standalone
-    }}, null, 2);
+    return JSON.stringify({schema:6, previous, history, current:session, device:{
+      userAgent:navigator.userAgent, os_version_source:'User-Agent is not authoritative; record Settings > About separately',
+      width:innerWidth, height:innerHeight, pixelRatio:devicePixelRatio, standalone:!!navigator.standalone
+    }, limits:{timeline_points:60, nominal_timeline_interval_ms:10000, storage_utf16_bytes:131072, ordinary_write_interval_ms:mode === 'minimal' ? 5000 : 1000,
+      note:'Sampled peaks only. Unknown end is not proof of a crash. Gameplay replay does not reproduce browser resource history.'}}, null, 2);
   }
   function open() {
     document.getElementById('dream-diagnostics-panel')?.remove();
@@ -79,20 +169,31 @@
     panel.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#211c30;color:#f9f1ff;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));font:16px system-ui;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:auto';
     const title = document.createElement('strong'); title.textContent = 'Dreamcore Diagnostics'; panel.appendChild(title);
     const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. No upload happens automatically.'; panel.appendChild(note);
+    const overview = document.createElement('div');
+    const old = previous;
+    overview.textContent = `Aktuell: ${mode}, Spieltest ${experiment}, Build ${session.build}. ${session.totals.run_changes} beobachtete Run-Wechsel, ${session.totals.room_changes} Raum-/Run-Wechsel. Letzte Sitzung: ${old ? new Date(old.started).toLocaleString() + ', ' + (old.mode || 'legacy') + ', Ende: ' + (old.end?.kind || 'unknown') : 'keine'}. ${history.length} Sitzungs\u00fcbersichten gespeichert. Diagnose aus erzeugt keine neue Sitzungsspur.`;
+    panel.appendChild(overview);
     const selector = document.createElement('select');
-    for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Audio vollständig aus'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
+    for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Spielsounds aus'],['stream-audio','Test: Gleiche Sounds mit Stream-Mixing'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
       const option = document.createElement('option'); option.value = value; option.textContent = label;
       selector.appendChild(option);
     }
     selector.value = experiment; selector.setAttribute('aria-label', 'Vergleichstest'); panel.appendChild(selector);
     button('Gewählten Test speichern und neu starten', () => {
-      try { localStorage.setItem('dreamcore-render-experiment', selector.value); } catch (_) {}
-      const target = new URL(location.href); target.searchParams.set('render-test', selector.value);
-      location.href = target.href;
+      restart(selector.value, mode);
     });
     const restartNote = document.createElement('div');
     restartNote.textContent = 'Neustart lädt den letzten Spielstand. Bitte jeweils nur einen Test vergleichen; Normal setzt die Teständerungen zurück.';
     panel.appendChild(restartNote);
+    const diagnosticSelector = document.createElement('select');
+    for (const [value,label] of [['standard','Diagnose: Standard'],['minimal','Diagnose: Minimal'],['off','Diagnose: Aus']]) {
+      const option = document.createElement('option'); option.value=value; option.textContent=label; diagnosticSelector.appendChild(option);
+    }
+    diagnosticSelector.value=mode; diagnosticSelector.setAttribute('aria-label','Diagnose-Aufwand'); panel.appendChild(diagnosticSelector);
+    button('Diagnose-Stufe \u00fcbernehmen und neu starten', () => restart(experiment, diagnosticSelector.value));
+    const modeNote=document.createElement('div');
+    modeNote.textContent='Standard: Verlauf und Details. Minimal: Status alle 5 Sekunden, keine Ressourcen-Inventur. Aus: keine laufende Aufzeichnung. Neustart setzt Browserressourcen zur\u00fcck; er spielt den Crash nicht nach. Unbekanntes Sitzungsende beweist keinen Crash.';
+    panel.appendChild(modeNote);
     const field = document.createElement('textarea'); field.readOnly = true; field.value = report();
     field.style.cssText = 'min-height:140px;flex:1;font:12px monospace;background:#130f20;color:#eee;border:1px solid #a38bc4'; panel.appendChild(field);
     const status = document.createElement('div'); panel.appendChild(status);
@@ -117,26 +218,38 @@
     button('Back to game', () => panel.remove());
     document.body.appendChild(panel);
   }
-  window.dreamDiagnostics = {record, heartbeat, failure, attachEngine, previous, current: session, open, download() {
+  function restart(nextExperiment = experiment, nextMode = mode) {
+    session.end={kind:'restart_requested',at:Date.now(),next_mode:nextMode,next_experiment:nextExperiment};
+    record({kind:'restart_requested'});persist(true);
+    try { localStorage.setItem('dreamcore-render-experiment',nextExperiment);localStorage.setItem(modeKey,nextMode); } catch (_) {}
+    const target=new URL(location.href);target.searchParams.set('render-test',nextExperiment);target.searchParams.set('diagnostic-mode',nextMode);
+    location.href=target.href;
+  }
+  window.dreamDiagnostics = {mode, record, heartbeat, failure, attachEngine, previous, current: session, history, report, restart, open, download() {
     const blob = new Blob([report()], {type: 'application/json'});
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = 'dreamcore-diagnostics.json'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }};
-  // Persist the first failure of each type even directly after a normal mark.
-  // Previously the one-second throttle could lose the only clue before a reload.
+  // At most eight first-of-kind urgent failures; repeats obey normal write cadence.
   const failures = new Set();
   function failure(kind, message = '') {
-    const first = !failures.has(kind); failures.add(kind);
-    if (first) session.failures.push({at: Date.now(), kind, message: String(message).slice(0, 500)});
-    record({kind, message: String(message).slice(0, 500)}, first);
+    if (mode === 'off') return;
+    kind=String(kind).slice(0,80);
+    const first = !failures.has(kind) && failures.size < 8;
+    if (first) { failures.add(kind); session.failures.push({at:Date.now(),kind,message:String(message).slice(0,500)}); }
+    record({kind,message:String(message).slice(0,500)});
+    if (first) persist(true);
   }
-  addEventListener('error', e => failure('error', e.message));
-  addEventListener('unhandledrejection', e => failure('rejection', e.reason));
-  document.addEventListener('webglcontextlost', e => failure('webglcontextlost', e.statusMessage), true);
-  document.addEventListener('visibilitychange', () => record({kind: 'visibility', state: document.visibilityState}, true));
-  addEventListener('pagehide', e => record({kind: 'pagehide', persisted: !!e.persisted}, true));
-  document.addEventListener('webglcontextrestored', () => record({kind: 'webglcontextrestored'}, true), true);
+  if (mode !== 'off') {
+    addEventListener('error', e => failure('error', e.message));
+    addEventListener('unhandledrejection', e => failure('rejection', e.reason));
+    document.addEventListener('webglcontextlost', e => failure('webglcontextlost', e.statusMessage), true);
+    document.addEventListener('visibilitychange', () => lifecycle('visibility',{state:document.visibilityState}));
+    addEventListener('pagehide', e => lifecycle('pagehide',{persisted:!!e.persisted}));
+    addEventListener('pageshow', e => lifecycle('pageshow',{persisted:!!e.persisted}));
+    document.addEventListener('webglcontextrestored', () => record({kind:'webglcontextrestored'}), true);
+  }
   record({kind: 'start'});
   // Explicit opt-in link for a mobile report, without opening browser developer tools.
   if (new URLSearchParams(location.search).has('diagnostics')) {
