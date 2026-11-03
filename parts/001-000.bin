@@ -1,5 +1,5 @@
 {
-  "build": "20261103T175753553939Z",
+  "build": "20261103T183518552354Z",
   "files": {
     "addons/runtime_sources/plugin.cfg": "58575f1e8fec8ca6b502acf626a5c9d7e70e770395c1c55da345ff4badee8f82",
     "addons/runtime_sources/plugin.gd": "b6a2ecc88caa076ba1f44698840c977543662548bfa9f35a81cb87e91566d83e",
@@ -1861,7 +1861,7 @@
     "scripts/actor_menu_model.gd.uid": "2235e200bf9d9793c70551d08607a9baa54d9f7110b8f0e27ccd70f760324382",
     "scripts/actor_menu_presenter.gd": "b3fe7a5bcae91ef18ff6dfcdf468efdae71d4b7ce535012eedb157691dc63071",
     "scripts/actor_menu_presenter.gd.uid": "e79bad9e08ff03fdc44c5144c7b19239ba8ff78d7b25ed1a18a206eb05b8ad7a",
-    "scripts/actor_movement.gd": "359f0f5a32a6526bdeee0c736f0f997ef627ace896c3ee5dc3e88ae484a1f026",
+    "scripts/actor_movement.gd": "0003b74a46ca8d5ff909d6833cb17bd03b0cb9d174f486fc7edba0f50e987539",
     "scripts/actor_movement.gd.uid": "79d7dc0b1c423398073407800cb9a41bd35bacf671308b3f4e7f7150a31f011b",
     "scripts/actor_renderer.gd": "4d7a36684a742f619b5e65f1121959c6eb9a05cf22b01662bb83ae8f97cfbd0d",
     "scripts/actor_renderer.gd.uid": "5ce6df5505a60b4067019348a7d7e9bdd76fd3b78f1f670eb3a36df34a284f61",
@@ -2450,5 +2450,9 @@
     "scripts/windfield_day_cycle.gd.uid": "e8361c26689d93f588df7ef0ad25e6f6983bc0182109aad7889b8ec20b08d468"
   },
   "portrait_import_limit": 512,
-  "prepared_project_sha256": "61abc4032cd90c79d23196be7469ece9017f8d95b3214401cd329c18b839a6a6"
+  "prepared_project_sha256": "61abc4032cd90c79d23196be7469ece9017f8d95b3214401cd329c18b839a6a6",
+  "release_base_build": "20261103T175753553939Z",
+  "release_changed_sources": [
+    "scripts/actor_movement.gd"
+  ]
 }
