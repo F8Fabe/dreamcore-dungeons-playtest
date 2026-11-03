@@ -23,13 +23,32 @@
   } catch (_) {}
   const session = {experiment, nativePixelRatio, effectivePixelRatio, build: document.documentElement.dataset.build || 'local', started: Date.now(), events: [], resources: [], failures: [], samples: [], engine: null};
   let lastWrite = 0;
+  let runtimeEngine = null;
+  let wasmPeak = 0;
+  let packBytes = null;
+  // Capacity, not live allocations or total process RAM. Emscripten replaces
+  // HEAPU8 after growth: never retain a view or its backing buffer here.
+  function memory() {
+    let capacity = null;
+    try {
+      const size = runtimeEngine?.rtenv?.HEAPU8?.buffer?.byteLength;
+      if (Number.isFinite(size) && size > 0) capacity = size;
+    } catch (_) {}
+    if (capacity !== null) wasmPeak = Math.max(wasmPeak, capacity);
+    return {wasm_capacity_bytes: capacity, wasm_peak_capacity_bytes: wasmPeak || null,
+      packaged_file_bytes: packBytes};
+  }
+  function attachEngine(engine, bytes) {
+    runtimeEngine = engine;
+    packBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : null;
+  }
   function persist(immediate = false) {
     if (!immediate && Date.now() - lastWrite < 1000) return;
     lastWrite = Date.now();
     try { localStorage.setItem(key, JSON.stringify(session)); } catch (_) {}
   }
   function record(value, immediate = false) {
-    const entry = {at: Date.now(), ...value};
+    const entry = {at: Date.now(), ...value, memory: memory()};
     // Large ownership snapshots have their own small ring. An action no longer
     // serializes sixty full snapshots, nor do samples displace critical events.
     if (entry.resource) {
@@ -45,11 +64,11 @@
     const canvas = document.getElementById('canvas');
     session.engine = {at: Date.now(), ...value,
       canvas: canvas ? {width: canvas.width, height: canvas.height} : null,
-      visibility: document.visibilityState};
+      visibility: document.visibilityState, memory: memory()};
     persist();
   }
   function report() {
-    return JSON.stringify({schema: 4, previous, current: session, device: {
+    return JSON.stringify({schema: 5, previous, current: session, device: {
       userAgent: navigator.userAgent, width: innerWidth, height: innerHeight,
       pixelRatio: devicePixelRatio, standalone: !!navigator.standalone
     }}, null, 2);
@@ -61,18 +80,18 @@
     const title = document.createElement('strong'); title.textContent = 'Dreamcore Diagnostics'; panel.appendChild(title);
     const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. No upload happens automatically.'; panel.appendChild(note);
     const selector = document.createElement('select');
-    for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Audio vollständig aus'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
+    for (const [value, label] of [['baseline','Normal'],['no-audio','Test: Audio vollstÃ¤ndig aus'],['no-blur','Test: Glas ohne Blur'],['dpr2','Test: Pixeldichte maximal 2']]) {
       const option = document.createElement('option'); option.value = value; option.textContent = label;
       selector.appendChild(option);
     }
     selector.value = experiment; selector.setAttribute('aria-label', 'Vergleichstest'); panel.appendChild(selector);
-    button('Gewählten Test speichern und neu starten', () => {
+    button('GewÃ¤hlten Test speichern und neu starten', () => {
       try { localStorage.setItem('dreamcore-render-experiment', selector.value); } catch (_) {}
       const target = new URL(location.href); target.searchParams.set('render-test', selector.value);
       location.href = target.href;
     });
     const restartNote = document.createElement('div');
-    restartNote.textContent = 'Neustart lädt den letzten Spielstand. Bitte jeweils nur einen Test vergleichen; Normal setzt die Teständerungen zurück.';
+    restartNote.textContent = 'Neustart lÃ¤dt den letzten Spielstand. Bitte jeweils nur einen Test vergleichen; Normal setzt die TestÃ¤nderungen zurÃ¼ck.';
     panel.appendChild(restartNote);
     const field = document.createElement('textarea'); field.readOnly = true; field.value = report();
     field.style.cssText = 'min-height:140px;flex:1;font:12px monospace;background:#130f20;color:#eee;border:1px solid #a38bc4'; panel.appendChild(field);
@@ -98,7 +117,7 @@
     button('Back to game', () => panel.remove());
     document.body.appendChild(panel);
   }
-  window.dreamDiagnostics = {record, heartbeat, failure, previous, current: session, open, download() {
+  window.dreamDiagnostics = {record, heartbeat, failure, attachEngine, previous, current: session, open, download() {
     const blob = new Blob([report()], {type: 'application/json'});
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = 'dreamcore-diagnostics.json'; link.click();
