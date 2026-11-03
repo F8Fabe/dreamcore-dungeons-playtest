@@ -1,0 +1,171 @@
+/* Offline-first, consent-gated playtest transport. No gameplay state is mutated. */
+(() => {
+ 'use strict';
+ const cfg=window.dreamObservatoryConfig||{}, endpoint=(cfg.endpoint||'').replace(/\/$/, '');
+ const BUDGET=20*1024*1024, PART=60000, MAX_REPORT=64*1024;
+ const bytes=s=>new TextEncoder().encode(s).length;
+ const uuid=()=>crypto.randomUUID();
+ const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
+ const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
+ let consent=read('observatory-consent',null), identity=read('observatory-identity',null);
+ let generation=0, controller=null;
+ let busy=false, stopped=false, retryAt=0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
+ let status='Bereit', queueCount=0, gaps=read('observatory-gaps',0), lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
+ const session=uuid(), seenFailures=new Map();
+ const previous=read('observatory-session',null);
+ const now=()=>Date.now();
+ function database(){
+  if(!dbPromise) dbPromise=new Promise((resolve,reject)=>{
+   const r=indexedDB.open('dreamcore-observatory-v1',1);
+   r.onupgradeneeded=()=>r.result.createObjectStore('outbox',{keyPath:'id'});
+   r.onsuccess=()=>{db=r.result;resolve(db);};r.onerror=()=>reject(r.error);
+  });
+  return dbPromise;
+ }
+ async function transaction(mode,fn){
+  const d=await database();return new Promise((resolve,reject)=>{
+   const t=d.transaction('outbox',mode),store=t.objectStore('outbox');let value;
+   t.oncomplete=()=>resolve(value);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Storage aborted'));
+   fn(store,v=>{value=v;});
+  });
+ }
+ const all=async()=>{
+  const rows=await transaction('readonly',(s,done)=>{s.getAll().onsuccess=e=>done(e.target.result);}),valid=[],bad=[];
+  for(const row of rows){
+   if(typeof row.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created))valid.push({...row,size:bytes(row.data)});
+   else bad.push(row.id);
+  }
+  if(bad.length){await change([],bad);gaps+=bad.length;save('observatory-gaps',gaps);}return valid;
+ };
+ const change=(put=[],remove=[])=>transaction('readwrite',s=>{remove.forEach(id=>s.delete(id));put.forEach(v=>s.put(v));});
+ function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
+ function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
+ function enqueue(events,oneShot=false){
+  if((consent!==true&&!oneShot)||stopped)return Promise.resolve();
+  const epoch=generation;
+  chain=chain.then(async()=>{
+   if(stopped||(!oneShot&&(consent!==true||epoch!==generation)))return;
+   const existing=await all(), rows=[];
+   for(const raw of events){
+    const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now()};
+    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
+    if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
+    const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
+    if(count>72||bytes(text)>4*1024*1024){gaps++;continue;}
+    for(let index=0;index<count;index++){
+     const data=text.slice(index*PART,(index+1)*PART), id=e.id+':'+index;
+     rows.push({id,event_id:e.id,index,count,data,created:now(),size:bytes(data),oneShot,run_id:e.run_id,snapshot_id:e.kind==='snapshot'?e.data.snapshot_id:''});
+    }
+   }
+   const unique=new Map(existing.concat(rows).map(r=>[r.id,r]));
+   const sorted=[...unique.values()].sort((a,b)=>Number(!!b.acked)-Number(!!a.acked)||a.created-b.created||a.index-b.index);
+   let size=sorted.reduce((n,r)=>n+r.size,0);const remove=[];
+   while(size>BUDGET&&sorted.length){const event=sorted[0].event_id, lost=sorted.some(r=>r.event_id===event&&!r.acked);for(let i=sorted.length-1;i>=0;i--)if(sorted[i].event_id===event){size-=sorted[i].size;remove.push(sorted[i].id);sorted.splice(i,1);}if(lost)gaps++;}
+   await change(rows.filter(r=>!remove.includes(r.id)),remove);
+   queueCount=sorted.filter(r=>!r.acked).length;save('observatory-gaps',gaps);
+   if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,at:now()});
+  }).catch(()=>{status='Lokaler Speicher nicht verfügbar; Spiel läuft weiter';gaps++;});
+  if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
+  return chain;
+ }
+ async function register(){
+  const create=async()=>{
+   identity=read('observatory-identity',null);
+   if(identity)return identity;
+   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller?.signal});
+   if(!r.ok)throw Error('Registration '+r.status);
+   const value=await r.json();if(!save('observatory-identity',value))throw Error('Cannot retain upload identity');identity=value;return value;
+  };
+  return navigator.locks?.request?navigator.locks.request('dreamcore-observatory-registration',create):create();
+ }
+ async function flush(){
+  if(busy||stopped||!endpoint||now()<retryAt)return;
+  busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
+  try{
+   await chain;const rows=(await all()).filter(r=>!r.acked).sort((a,b)=>a.created-b.created||a.index-b.index);
+   queueCount=rows.length;if(!rows.length)return;
+   const auth=await register();
+   for(const row of rows.slice(0,8)){
+    if(stopped||(!consent&&!row.oneShot))break;
+    const body=JSON.stringify({...row,gaps});
+    if(bytes(body)>512*1024){await change([],[row.id]);gaps++;continue;}
+    const r=await fetch(endpoint+'/v1/parts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body,signal:controller.signal});
+    if(epoch!==generation)break;
+    if(!r.ok){
+     const retryHeader=r.headers.get('Retry-After'),numericDelay=Number(retryHeader);
+     const delay=Number.isFinite(numericDelay)?numericDelay:(Date.parse(retryHeader)-now())/1000;
+     if(r.status===401){identity=null;save('observatory-identity',null);throw Error('Upload identity expired');}
+     if([400,413,422].includes(r.status)){await change([],[row.id]);gaps++;save('observatory-gaps',gaps);status='Ein Paket wurde abgelehnt';continue;}
+     retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));throw Error('Upload '+r.status);
+    }
+    const ack=await r.json();if(ack.id!==row.id)throw Error('Missing acknowledgement');
+    await change([{...row,acked:true}]);queueCount--;if(ack.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;failures=0;status='Übermittelt';
+   }
+  }catch(_){status='Upload wartet auf Verbindung oder Dienst';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
+  finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped)setTimeout(flush,Math.max(5000,retryAt-now()));}
+ }
+ async function setConsent(value){
+  generation++;controller?.abort();consent=value===true;save('observatory-consent',consent);
+  if(!consent){await chain;try{await transaction('readwrite',s=>s.clear());queueCount=0;}catch{}save('observatory-session',null);}
+  else {enqueue([localEvent('consent',{version:1})]);flush();}
+ }
+ async function deleteData(){
+  stopped=true;await setConsent(false);
+  if(!identity){status='Lokale Daten gelöscht';stopped=false;return;}
+  try{
+   const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+identity.token,'X-Installation':identity.id}});
+   if(!r.ok)throw Error('Delete failed');identity=null;save('observatory-identity',null);status='Gesammelte Daten gelöscht';
+  }catch{status='Online-Löschung ausstehend; bitte erneut versuchen';}
+  finally{stopped=false;}
+ }
+ function failure(kind,message,manual=false){
+  if(consent!==true&&!manual)return;
+  const text=serializeError(message), signature=kind+':'+text;
+  const count=(seenFailures.get(signature)||0)+1;
+  if(seenFailures.size>=32&&!seenFailures.has(signature))return;
+  seenFailures.set(signature,count);if(count!==1&&count%100!==0)return;
+  let diagnostic={};try{diagnostic=JSON.parse(window.dreamDiagnostics?.report()||'{}');}catch{}
+  // Only an allowlisted bounded projection is transmitted, never arbitrary local diagnostics.
+  const current=(kind==='unclean_session'?diagnostic.previous:diagnostic.current)||{};
+  const data={kind,message:text,count,device:{width:innerWidth,height:innerHeight,userAgent:String(navigator.userAgent||'').slice(0,300)},previous_session_id:kind==='unclean_session'?previous?.id:undefined,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,engine:current.engine||{},events:(current.events||[]).slice(-20),description:manual?text:''};
+  let cleaned=JSON.parse(JSON.stringify(data).replace(/https?:\/\/[^\s"\\]+/g,'[url]'));
+  if(bytes(JSON.stringify(cleaned))>MAX_REPORT)cleaned={kind,message:text,count,snapshot_id:lastSnapshot,truncated:true};
+  enqueue([localEvent('failure',cleaned)],manual).then(flush);
+ }
+ function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ async function exportLocal(){
+  await chain;const rows=await all(), groups=new Map(),events=[];
+  for(const row of rows){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
+  for(const parts of groups.values()){parts.sort((a,b)=>a.index-b.index);if(parts.length===parts[0].count)try{events.push(JSON.parse(parts.map(p=>p.data).join('')));}catch{}}
+  download({schema:1,events,gaps,scope:'bounded_local_history'},'dreamcore-playtest.json');
+ }
+ function open(){
+  document.getElementById('observatory-panel')?.remove();
+  const panel=document.createElement('section');panel.id='observatory-panel';panel.style.cssText='position:fixed;inset:5%;overflow:auto;z-index:20000;background:#19182c;color:#f1ecff;padding:24px;border:1px solid #aa96e8;border-radius:16px;font:16px system-ui';
+  const title=document.createElement('h2');title.textContent='Gemeinsam Dreamcore verbessern';panel.append(title);
+  const text=document.createElement('p');text.textContent='Mit deiner Zustimmung senden wir Run-Verläufe, Builds und Fehlerberichte automatisch an Fabes private Playtest-Sammlung. Ohne Namen oder Spielerkonto. Aufbewahrung: 90 Tage; markierte Referenz-Runs länger. Spielen geht auch ohne Zustimmung. Abschalten stoppt neue Uploads; bereits gesendete Daten kannst du separat löschen.';panel.append(text);
+  const state=document.createElement('p');state.textContent=`${consent?'Freigegeben':'Nicht freigegeben'} · ${queueCount} Paketteile ausstehend · ${gaps} Datenlücken · ${status}${endpoint?'':' · Uploaddienst noch nicht eingerichtet'}`;panel.append(state);
+  const button=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='margin:6px;padding:12px';b.onclick=async()=>{await fn();};panel.append(b);};
+  button('Zustimmen',async()=>{await setConsent(true);panel.remove();});button('Ohne Übermittlung spielen',async()=>{await setConsent(false);panel.remove();});
+  button('Lokale Run-Daten exportieren',exportLocal);button('Meine gesammelten Daten löschen',async()=>{await deleteData();open();});
+  const input=document.createElement('textarea');input.placeholder='Was ist passiert? Keine persönlichen Daten eingeben.';input.maxLength=2000;panel.append(input);
+  button('Diesen Problembericht senden',()=>{failure('manual',input.value,true);state.textContent='Bericht zur Übermittlung vorgemerkt';});
+  button('Zurück zum Spiel',()=>panel.remove());document.body.append(panel);
+ }
+ window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,open,exportLocal,get status(){return {status,queueCount,gaps};}};
+ addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);});
+ addEventListener('online',()=>{retryAt=0;flush();});
+ addEventListener('error',e=>failure('javascript',e.error||e.message));
+ addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
+ document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);
+ document.addEventListener('webglcontextrestored',()=>enqueue([localEvent('context_restored',{})]),true);
+ addEventListener('pagehide',e=>{if(consent)save('observatory-session',{id:session,closed:true,persisted:!!e.persisted,context:lastContext,at:now()});});
+ addEventListener('pageshow',()=>{if(consent)save('observatory-session',{id:session,closed:false,context:lastContext,at:now()});});
+ addEventListener('DOMContentLoaded',()=>{
+  const b=document.createElement('button');b.textContent='Playtest & Problem melden';b.style.cssText='position:fixed;bottom:4px;right:4px;z-index:9999;font:12px system-ui';b.onclick=open;document.body.append(b);
+  if(consent===null)open();
+ });
+ if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}
+ if(consent===true&&previous&&!previous.closed){lastContext=previous.context||{};lastSnapshot=previous.snapshot_id||'';lastConfirmedSnapshot=previous.confirmed_snapshot_id||'';failure('unclean_session','Vorherige Sitzung endete ohne Abschluss; Ursache unbekannt');}
+ setInterval(flush,30000);
+})();

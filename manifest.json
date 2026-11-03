@@ -7,19 +7,19 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 298314,
+    "bytes": 298607,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "d31612432d8f5b46df45cc909bcb3fbf69f4945b7095534ce32eaf3236934af2"
+    "sha256": "9afa4c641067e14e3142c780281da95addcefaff2eb13bc4d5d60b3437b91559"
   },
   {
     "path": "diagnostics.js",
-    "bytes": 20387,
+    "bytes": 20419,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "56dbb441ed932cae6835bbbf9d99a3469cf201690e7a1ef2ed6872a6e5de3f1d"
+    "sha256": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da"
   },
   {
     "path": "dreamcore-180.png",
@@ -87,11 +87,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 9210,
+    "bytes": 9530,
     "parts": [
       "011-000.bin"
     ],
-    "sha256": "665cb494bc3d71c0d9d49bafe1b7deae36a632f21651d99233ae3cec09a218d9"
+    "sha256": "454665005ef2aeb2a2c66bdfb622a8fe60ddebd2ee5878ccf0ca12145254e386"
   },
   {
     "path": "index.icon.png",
@@ -111,7 +111,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 87598096,
+    "bytes": 87618848,
     "parts": [
       "014-000.bin",
       "014-001.bin",
@@ -119,7 +119,7 @@
       "014-003.bin",
       "014-004.bin"
     ],
-    "sha256": "7dae257138bbe2b01f3f501f686836e175e7ad9fcf670bb94740e12f017cc071"
+    "sha256": "894882bca30923fd8f14c834e53d1808f1ba3bf90cfc19905505fdde38626598"
   },
   {
     "path": "index.png",
@@ -195,10 +195,26 @@
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
   {
+    "path": "observatory-config.js",
+    "bytes": 137,
+    "parts": [
+      "024-000.bin"
+    ],
+    "sha256": "6cef801cf0724ba8b868d9011d6f03cc3aea667ce9f88dc654e018185cedb4ed"
+  },
+  {
+    "path": "observatory.js",
+    "bytes": 14477,
+    "parts": [
+      "025-000.bin"
+    ],
+    "sha256": "3c45236e9978d22a490eac61f098b1d39b771ac17ba411fbf3840d7ada099863"
+  },
+  {
     "path": "sleeping-trio-v1.webp",
     "bytes": 113090,
     "parts": [
-      "024-000.bin"
+      "026-000.bin"
     ],
     "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }

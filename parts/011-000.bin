@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-build="20261103T183518552354Z" lang="en">
+<html data-build="20261103T201310790263Z" lang="en">
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
@@ -138,7 +138,7 @@ body {
 }
 
 </style>
-<script src="diagnostics.js"></script></head>
+<script src="diagnostics.js"></script><script src="observatory-config.js"></script><script src="observatory.js"></script></head>
 	<body>
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
@@ -158,7 +158,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87598096,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87618848,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -196,7 +196,7 @@ const engine = new Engine(GODOT_CONFIG);
 		});
 	}
 
-	function displayFailureNotice(err) {
+	function displayFailureNotice(err) { window.dreamObservatory?.failure('startup_failure', err);
 		console.error(err);
 		if (err instanceof Error) {
 			setStatusNotice(err.message);
@@ -251,9 +251,11 @@ const engine = new Engine(GODOT_CONFIG);
             'onPrintError': function (...args) {
                 console.error(...args);
                 window.dreamDiagnostics?.failure('engine_error', args.join(' '));
+                window.dreamObservatory?.failure('engine_error', args.join(' '));
             },
             'onExit': function (code) {
                 window.dreamDiagnostics?.record({kind: 'engine_exit', code: code}, true);
+                if (code !== 0) window.dreamObservatory?.failure('engine_exit', String(code));
             },
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {

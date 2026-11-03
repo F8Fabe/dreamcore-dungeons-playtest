@@ -188,7 +188,7 @@
     const panel = document.createElement('section'); panel.id = 'dream-diagnostics-panel';
     panel.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#211c30;color:#f9f1ff;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));font:16px system-ui;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:auto';
     const title = document.createElement('strong'); title.textContent = 'Dreamcore Diagnostics'; panel.appendChild(title);
-    const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. No upload happens automatically.'; panel.appendChild(note);
+    const note = document.createElement('div'); note.textContent = 'Local report, including the previous session when available. Share this after a reload/crash. Automatic sharing is controlled separately in Playtest settings.'; panel.appendChild(note);
     const overview = document.createElement('div');
     const old = previous;
     overview.textContent = `Aktuell: ${mode}, Spieltest ${experiment}, Build ${session.build}. ${session.totals.run_changes} beobachtete Run-Wechsel, ${session.totals.room_changes} Raum-/Run-Wechsel. Letzte Sitzung: ${old ? new Date(old.started).toLocaleString() + ', ' + (old.mode || 'legacy') + ', Ende: ' + (old.end?.kind || 'unknown') : 'keine'}. ${history.length} Sitzungs\u00fcbersichten gespeichert. Diagnose aus erzeugt keine neue Sitzungsspur.`;
