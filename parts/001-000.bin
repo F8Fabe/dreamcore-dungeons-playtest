@@ -1,5 +1,5 @@
 {
-  "build": "20261104T111252437111Z",
+  "build": "20261104T112352051833Z",
   "files": {
     "addons/runtime_sources/plugin.cfg": "58575f1e8fec8ca6b502acf626a5c9d7e70e770395c1c55da345ff4badee8f82",
     "addons/runtime_sources/plugin.gd": "b6a2ecc88caa076ba1f44698840c977543662548bfa9f35a81cb87e91566d83e",
@@ -2294,7 +2294,7 @@
     "scripts/playtest_import.gd.uid": "db27e1e5b75826de703425b9e4830fadc50970d1987d0c3af8bd523c1ee570db",
     "scripts/playtest_package.gd": "c9dac40e776c1c7b438ca47475f9d1c8f1789f582104f1d4624b9f7e8748cc7d",
     "scripts/playtest_package.gd.uid": "238c9dfa16d346b74e88dc30718c6c4cedb8850fda219af3f21b0ab87d8ff7b7",
-    "scripts/playtest_recorder.gd": "1e55fc8e362cbaa9891cc69f96c709c769030cf1fcd9cd5feeb689bb20706a08",
+    "scripts/playtest_recorder.gd": "e0af9065fbdd9bc7f4b85f7b730a6ab4e7f54333b30b08a4cc193b22c8a8e3af",
     "scripts/playtest_recorder.gd.uid": "b2eb43610d75387339dc12a751aa09e4dee2b80757efa7ada8dff0a1f18c270e",
     "scripts/poolrooms_float.gd": "e65f2b85ccd7b12054063063ccb7b72520e8278737271f0b8bcaebfb5564de48",
     "scripts/poolrooms_float.gd.uid": "0c2aa63d0bc52649a86f8ca947dde77b445c15063e8ee72bef30ad8156bbb3a1",
