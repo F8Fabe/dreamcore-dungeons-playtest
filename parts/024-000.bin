@@ -1,2 +1,2 @@
-// Public configuration only. Empty endpoint keeps this local until explicitly deployed.
-window.dreamObservatoryConfig = {endpoint: ''};
+// Public ingest endpoint. Uploads still require the player's explicit consent.
+window.dreamObservatoryConfig = {endpoint: 'https://dreamcore-observatory-ingest.fabeceo.workers.dev'};

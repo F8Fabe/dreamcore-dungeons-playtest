@@ -162,7 +162,6 @@
  addEventListener('pagehide',e=>{if(consent)save('observatory-session',{id:session,closed:true,persisted:!!e.persisted,context:lastContext,at:now()});});
  addEventListener('pageshow',()=>{if(consent)save('observatory-session',{id:session,closed:false,context:lastContext,at:now()});});
  addEventListener('DOMContentLoaded',()=>{
-  const b=document.createElement('button');b.textContent='Playtest & Problem melden';b.style.cssText='position:fixed;bottom:4px;right:4px;z-index:9999;font:12px system-ui';b.onclick=open;document.body.append(b);
   if(consent===null)open();
  });
  if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}

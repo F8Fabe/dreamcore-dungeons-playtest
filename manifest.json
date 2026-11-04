@@ -7,11 +7,11 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 298607,
+    "bytes": 299481,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "9afa4c641067e14e3142c780281da95addcefaff2eb13bc4d5d60b3437b91559"
+    "sha256": "da90f52f8a02ddac10afe332558020cab0afff09aa3a8027c188a96d923a08d6"
   },
   {
     "path": "diagnostics.js",
@@ -91,7 +91,7 @@
     "parts": [
       "011-000.bin"
     ],
-    "sha256": "454665005ef2aeb2a2c66bdfb622a8fe60ddebd2ee5878ccf0ca12145254e386"
+    "sha256": "023928c994e32c04a68ec2080f34b74f8dad7cb182f78abbbecffc1f877981c5"
   },
   {
     "path": "index.icon.png",
@@ -111,7 +111,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 87618848,
+    "bytes": 87558920,
     "parts": [
       "014-000.bin",
       "014-001.bin",
@@ -119,7 +119,7 @@
       "014-003.bin",
       "014-004.bin"
     ],
-    "sha256": "894882bca30923fd8f14c834e53d1808f1ba3bf90cfc19905505fdde38626598"
+    "sha256": "d249d384af5dee281856c9aa053827518cae8a3b2ab0ead1978a6faa42e3d933"
   },
   {
     "path": "index.png",
@@ -196,19 +196,19 @@
   },
   {
     "path": "observatory-config.js",
-    "bytes": 137,
+    "bytes": 184,
     "parts": [
       "024-000.bin"
     ],
-    "sha256": "6cef801cf0724ba8b868d9011d6f03cc3aea667ce9f88dc654e018185cedb4ed"
+    "sha256": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0"
   },
   {
     "path": "observatory.js",
-    "bytes": 14477,
+    "bytes": 14264,
     "parts": [
       "025-000.bin"
     ],
-    "sha256": "3c45236e9978d22a490eac61f098b1d39b771ac17ba411fbf3840d7ada099863"
+    "sha256": "b4b97863fbbe1c029edc8ccdde21408ea946f5cf61ed8136bb74a0731a135cd7"
   },
   {
     "path": "sleeping-trio-v1.webp",
