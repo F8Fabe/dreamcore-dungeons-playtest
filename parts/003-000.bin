@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "build": "20261104T214321945322Z",
+      "title": "Equipment and loot rework",
+      "summary": "Loot now equips directly or becomes crafting materials. Replacing equipment automatically salvages the previous item, and equipped gear can be crafted between fights.",
+      "changes": [
+        "Removed the backpack and backup item slots. Only equipped gear is retained; each pending loot item must be equipped or salvaged before continuing.",
+        "Equipping loot or accepting the free merchant item replaces the same-slot item and salvages it once. Comparisons show the replacement material and skills incompatible with the new weapon.",
+        "Replaced inventory swapping with a four-slot equipment screen. Crafting works on equipped hero gear outside combat and on pending loot; companion equipment remains fixed."
+      ]
+    },
+    {
       "build": "20261104T151107051426Z",
       "title": "Combat and build rework",
       "summary": "Reworked weapon combat, class starts and build upgrades, with weapon drops that better reflect your build. Navigation now does less repeated work in crowded fights.",

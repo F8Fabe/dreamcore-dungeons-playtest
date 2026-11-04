@@ -7,27 +7,27 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 299992,
+    "bytes": 299562,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "bc8cdb7f795fd1946e76ce4800f8def92d00f5a52bad89e9aa6ae28ac80aee5f"
+    "sha256": "581425a8ed0d2f7efb174c02830c10694821f5968685b855f70947c2f705fd6b"
   },
   {
     "path": "changelog.html",
-    "bytes": 3897,
+    "bytes": 4851,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "562e41f4eb8d2fcb5eedb3b0542fb15d4daee5ee8792610ec1b6333c656d3109"
+    "sha256": "d766cf99748bc1c676f01d3fe86185bc2abaa6741a579dc8280b3f8f9e24be0a"
   },
   {
     "path": "changelog.json",
-    "bytes": 2036,
+    "bytes": 2896,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "558a312b34d27ea2a44656a2d70b1ff21a6cb3876c1585afb4b536cb9561155d"
+    "sha256": "e2c7f08b76247ee0414deca67cd0f2b5740d9f7a519eb6c6f17bef4b4a4e8c2a"
   },
   {
     "path": "diagnostics.js",
@@ -107,7 +107,7 @@
     "parts": [
       "013-000.bin"
     ],
-    "sha256": "88ca051ee3566f226a2c830db2f1f5331479e7f0ffc889fe4c5fb104f4c1ae31"
+    "sha256": "5b75b077f94ac851f0e5c4cdd3e3969671f56f2c46e5293872e5f8750ed25297"
   },
   {
     "path": "index.icon.png",
@@ -127,7 +127,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 87636696,
+    "bytes": 87629308,
     "parts": [
       "016-000.bin",
       "016-001.bin",
@@ -135,7 +135,7 @@
       "016-003.bin",
       "016-004.bin"
     ],
-    "sha256": "709e40bfdc326159aaed5774bcd2487bcb89d74d8e240f86c6f071e79f0c125a"
+    "sha256": "3b6648c3ffdc209a16f7512cd2fb6ea432d18035177ac41325529c8bfa025cfb"
   },
   {
     "path": "index.png",
@@ -220,19 +220,19 @@
   },
   {
     "path": "observatory.js",
-    "bytes": 19871,
+    "bytes": 20136,
     "parts": [
       "027-000.bin"
     ],
-    "sha256": "555b4b4132296211ee66381f19a130c100b029bb13a9bd0b29c3e8266773392f"
+    "sha256": "927b1bbe921c9644f8a62fc1f220e516d9c268aa2cafd68ec2e893957c5f71a1"
   },
   {
     "path": "release.json",
-    "bytes": 3646,
+    "bytes": 3088,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "c8f2edb92d0ebb1cf6edc625f7fa7ab426c6dbfa72ef16f8824ad6d2576ba076"
+    "sha256": "909d36a9860a9259d52006e10a0d47f8dffe10b3a4f6c1a2a768737b68a53413"
   },
   {
     "path": "sleeping-trio-v1.webp",

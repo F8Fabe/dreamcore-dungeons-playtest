@@ -156,7 +156,10 @@
   const data={kind,message:text,count,device:{width:innerWidth,height:innerHeight,userAgent:String(navigator.userAgent||'').slice(0,300)},previous_session_id:kind==='unclean_session'?previous?.id:undefined,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,engine:current.engine||{},events:(current.events||[]).slice(-20),description:manual?text:''};
   let cleaned=JSON.parse(JSON.stringify(data).replace(/https?:\/\/[^\s"\\]+/g,'[url]'));
   if(bytes(JSON.stringify(cleaned))>MAX_REPORT)cleaned={kind,message:text,count,snapshot_id:lastSnapshot,truncated:true};
-  enqueue([localEvent('failure',cleaned)],manual).then(flush);
+  // A browser may omit pagehide on close, reload, suspension or loading abort.
+  // Retain context as a lifecycle observation, never promote it to an error.
+  if(kind==='unclean_session')cleaned.reason='unobserved_session_end';
+  enqueue([localEvent(kind==='unclean_session'?'leave':'failure',cleaned)],manual).then(flush);
  }
  function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  async function exportLocal(){
