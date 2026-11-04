@@ -7,17 +7,33 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 299481,
+    "bytes": 299992,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "1ffe17d29c5fe9aaba6a60b2322a07012dd1e0a2c7056a5bee8b9b4c235227eb"
+    "sha256": "bc8cdb7f795fd1946e76ce4800f8def92d00f5a52bad89e9aa6ae28ac80aee5f"
+  },
+  {
+    "path": "changelog.html",
+    "bytes": 3897,
+    "parts": [
+      "002-000.bin"
+    ],
+    "sha256": "562e41f4eb8d2fcb5eedb3b0542fb15d4daee5ee8792610ec1b6333c656d3109"
+  },
+  {
+    "path": "changelog.json",
+    "bytes": 2036,
+    "parts": [
+      "003-000.bin"
+    ],
+    "sha256": "558a312b34d27ea2a44656a2d70b1ff21a6cb3876c1585afb4b536cb9561155d"
   },
   {
     "path": "diagnostics.js",
     "bytes": 20419,
     "parts": [
-      "002-000.bin"
+      "004-000.bin"
     ],
     "sha256": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da"
   },
@@ -25,7 +41,7 @@
     "path": "dreamcore-180.png",
     "bytes": 51580,
     "parts": [
-      "003-000.bin"
+      "005-000.bin"
     ],
     "sha256": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281"
   },
@@ -33,7 +49,7 @@
     "path": "dreamcore-192.png",
     "bytes": 57599,
     "parts": [
-      "004-000.bin"
+      "006-000.bin"
     ],
     "sha256": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125"
   },
@@ -41,7 +57,7 @@
     "path": "dreamcore-512.png",
     "bytes": 322465,
     "parts": [
-      "005-000.bin"
+      "007-000.bin"
     ],
     "sha256": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b"
   },
@@ -49,7 +65,7 @@
     "path": "dreamcore-64.png",
     "bytes": 8666,
     "parts": [
-      "006-000.bin"
+      "008-000.bin"
     ],
     "sha256": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656"
   },
@@ -57,7 +73,7 @@
     "path": "dreamcore.webmanifest",
     "bytes": 474,
     "parts": [
-      "007-000.bin"
+      "009-000.bin"
     ],
     "sha256": "8ed15ba08a539dc197f3b682e27bd251b4da4ff98ce2e4e7ecb944562bad360c"
   },
@@ -65,7 +81,7 @@
     "path": "index.apple-touch-icon.png",
     "bytes": 51580,
     "parts": [
-      "008-000.bin"
+      "010-000.bin"
     ],
     "sha256": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281"
   },
@@ -73,7 +89,7 @@
     "path": "index.audio.position.worklet.js",
     "bytes": 2973,
     "parts": [
-      "009-000.bin"
+      "011-000.bin"
     ],
     "sha256": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8"
   },
@@ -81,23 +97,23 @@
     "path": "index.audio.worklet.js",
     "bytes": 7298,
     "parts": [
-      "010-000.bin"
+      "012-000.bin"
     ],
     "sha256": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3"
   },
   {
     "path": "index.html",
-    "bytes": 9530,
+    "bytes": 9798,
     "parts": [
-      "011-000.bin"
+      "013-000.bin"
     ],
-    "sha256": "5092e38bdcddafb147fd496e018b7e65adcaf27a3ce893ef6c5dd4fc03dd0798"
+    "sha256": "88ca051ee3566f226a2c830db2f1f5331479e7f0ffc889fe4c5fb104f4c1ae31"
   },
   {
     "path": "index.icon.png",
     "bytes": 8666,
     "parts": [
-      "012-000.bin"
+      "014-000.bin"
     ],
     "sha256": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656"
   },
@@ -105,27 +121,27 @@
     "path": "index.js",
     "bytes": 284882,
     "parts": [
-      "013-000.bin"
+      "015-000.bin"
     ],
     "sha256": "b8f41230fabd0f62233277757858ddbf564ed202db3e320152787a8a94af5d8a"
   },
   {
     "path": "index.pck",
-    "bytes": 87561336,
+    "bytes": 87636696,
     "parts": [
-      "014-000.bin",
-      "014-001.bin",
-      "014-002.bin",
-      "014-003.bin",
-      "014-004.bin"
+      "016-000.bin",
+      "016-001.bin",
+      "016-002.bin",
+      "016-003.bin",
+      "016-004.bin"
     ],
-    "sha256": "3720ebf91b798a61231325cd02616d48b5c5e654e6a3c568b47dfd56ef4e0389"
+    "sha256": "709e40bfdc326159aaed5774bcd2487bcb89d74d8e240f86c6f071e79f0c125a"
   },
   {
     "path": "index.png",
     "bytes": 322465,
     "parts": [
-      "015-000.bin"
+      "017-000.bin"
     ],
     "sha256": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b"
   },
@@ -133,8 +149,8 @@
     "path": "index.wasm",
     "bytes": 39514754,
     "parts": [
-      "016-000.bin",
-      "016-001.bin"
+      "018-000.bin",
+      "018-001.bin"
     ],
     "sha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
   },
@@ -142,7 +158,7 @@
     "path": "librarian-chibi-v1.webp",
     "bytes": 18048,
     "parts": [
-      "017-000.bin"
+      "019-000.bin"
     ],
     "sha256": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af"
   },
@@ -150,7 +166,7 @@
     "path": "Licenses/Fredoka-OFL.txt",
     "bytes": 4388,
     "parts": [
-      "018-000.bin"
+      "020-000.bin"
     ],
     "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
   },
@@ -158,7 +174,7 @@
     "path": "Licenses/Godot-COPYRIGHT.txt",
     "bytes": 100108,
     "parts": [
-      "019-000.bin"
+      "021-000.bin"
     ],
     "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
   },
@@ -166,7 +182,7 @@
     "path": "Licenses/Godot-LICENSE.txt",
     "bytes": 1149,
     "parts": [
-      "020-000.bin"
+      "022-000.bin"
     ],
     "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
   },
@@ -174,7 +190,7 @@
     "path": "Licenses/NotoSansMath-OFL.txt",
     "bytes": 4380,
     "parts": [
-      "021-000.bin"
+      "023-000.bin"
     ],
     "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
   },
@@ -182,7 +198,7 @@
     "path": "Licenses/NotoSansSymbols-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "022-000.bin"
+      "024-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
@@ -190,7 +206,7 @@
     "path": "Licenses/NotoSansSymbols2-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "023-000.bin"
+      "025-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
@@ -198,7 +214,7 @@
     "path": "observatory-config.js",
     "bytes": 184,
     "parts": [
-      "024-000.bin"
+      "026-000.bin"
     ],
     "sha256": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0"
   },
@@ -206,23 +222,23 @@
     "path": "observatory.js",
     "bytes": 19871,
     "parts": [
-      "025-000.bin"
+      "027-000.bin"
     ],
     "sha256": "555b4b4132296211ee66381f19a130c100b029bb13a9bd0b29c3e8266773392f"
   },
   {
     "path": "release.json",
-    "bytes": 2097,
+    "bytes": 3646,
     "parts": [
-      "026-000.bin"
+      "028-000.bin"
     ],
-    "sha256": "e63b62b2596e380448cf01fb2e5318392a5e8ce69d646a4c4b070b45aa4c7bfc"
+    "sha256": "c8f2edb92d0ebb1cf6edc625f7fa7ab426c6dbfa72ef16f8824ad6d2576ba076"
   },
   {
     "path": "sleeping-trio-v1.webp",
     "bytes": 113090,
     "parts": [
-      "027-000.bin"
+      "029-000.bin"
     ],
     "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }

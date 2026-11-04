@@ -1,234 +1,93 @@
-/* Offline-first, consent-gated playtest transport. No gameplay state is mutated. */
-(() => {
- 'use strict';
- const cfg=window.dreamObservatoryConfig||{}, endpoint=(cfg.endpoint||'').replace(/\/$/, '');
- const BUDGET=20*1024*1024, PART=60000, MAX_REPORT=64*1024;
- const bytes=s=>new TextEncoder().encode(s).length;
- const uuid=()=>crypto.randomUUID();
- const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
- const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
- let consent=read('observatory-consent',null), identity=read('observatory-identity',null);
- let generation=0, controller=null;
- let busy=false, stopped=false, retryAt=0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
- let status='Ready', queueCount=0, gaps=read('observatory-gaps',0), lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
- const session=uuid(), seenFailures=new Map();
- const traffic={requests:0,body_bytes:0,uncompressed_bytes:0};
- const previous=read('observatory-session',null);
- const now=()=>Date.now();
- function database(){
-  if(!dbPromise) dbPromise=new Promise((resolve,reject)=>{
-   const r=indexedDB.open('dreamcore-observatory-v1',1);
-   r.onupgradeneeded=()=>r.result.createObjectStore('outbox',{keyPath:'id'});
-   r.onsuccess=()=>{db=r.result;resolve(db);};r.onerror=()=>reject(r.error);
-  });
-  return dbPromise;
- }
- async function transaction(mode,fn){
-  const d=await database();return new Promise((resolve,reject)=>{
-   const t=d.transaction('outbox',mode),store=t.objectStore('outbox');let value;
-   t.oncomplete=()=>resolve(value);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Storage aborted'));
-   fn(store,v=>{value=v;});
-  });
- }
- const all=async()=>{
-  const rows=await transaction('readonly',(s,done)=>{s.getAll().onsuccess=e=>done(e.target.result);}),valid=[],bad=[];
-  for(const row of rows){
-   if(typeof row.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created))valid.push({...row,size:bytes(row.data)});
-   else bad.push(row.id);
-  }
-  if(bad.length){await change([],bad);gaps+=bad.length;save('observatory-gaps',gaps);}return valid;
- };
- const change=(put=[],remove=[])=>transaction('readwrite',s=>{remove.forEach(id=>s.delete(id));put.forEach(v=>s.put(v));});
- function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
- function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
- function enqueue(events,oneShot=false){
-  if((consent!==true&&!oneShot)||stopped)return Promise.resolve();
-  const epoch=generation;
-  chain=chain.then(async()=>{
-   if(stopped||(!oneShot&&(consent!==true||epoch!==generation)))return;
-   const existing=await all(), rows=[];
-   for(const raw of events){
-    const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now()};
-    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
-    if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
-    const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
-    if(count>72||bytes(text)>4*1024*1024){gaps++;continue;}
-    for(let index=0;index<count;index++){
-     const data=text.slice(index*PART,(index+1)*PART), id=e.id+':'+index;
-     rows.push({id,event_id:e.id,index,count,data,created:now(),size:bytes(data),oneShot,run_id:e.run_id,snapshot_id:e.kind==='snapshot'?e.data.snapshot_id:''});
-    }
-   }
-   const unique=new Map(existing.concat(rows).map(r=>[r.id,r]));
-   const sorted=[...unique.values()].sort((a,b)=>Number(!!b.acked)-Number(!!a.acked)||a.created-b.created||a.index-b.index);
-   let size=sorted.reduce((n,r)=>n+r.size,0);const remove=[];
-   while(size>BUDGET&&sorted.length){const event=sorted[0].event_id, lost=sorted.some(r=>r.event_id===event&&!r.acked);for(let i=sorted.length-1;i>=0;i--)if(sorted[i].event_id===event){size-=sorted[i].size;remove.push(sorted[i].id);sorted.splice(i,1);}if(lost)gaps++;}
-   await change(rows.filter(r=>!remove.includes(r.id)),remove);
-   queueCount=sorted.filter(r=>!r.acked).length;save('observatory-gaps',gaps);
-   if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,at:now()});
-  }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;});
-  if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
-  return chain;
- }
- async function register(){
-  const create=async()=>{
-   identity=read('observatory-identity',null);
-   if(identity)return identity;
-   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller?.signal});
-   if(!r.ok)throw Error('Registration '+r.status);
-   const value=await r.json();if(!save('observatory-identity',value))throw Error('Cannot retain upload identity');identity=value;return value;
-  };
-  return navigator.locks?.request?navigator.locks.request('dreamcore-observatory-registration',create):create();
- }
- async function flush(){
-  if(busy||stopped||!endpoint||now()<retryAt)return;
-  busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
-  try{
-   await chain;const rows=(await all()).filter(r=>!r.acked).sort((a,b)=>a.created-b.created||a.index-b.index);
-   queueCount=rows.length;if(!rows.length)return;
-   const auth=await register();
-   const batch=[];let payload='';
-   for(const row of rows){
-    if(stopped||(!consent&&!row.oneShot))continue;
-    const part={id:row.id,event_id:row.event_id,index:row.index,count:row.count,data:row.data,gaps};
-    const next=JSON.stringify({parts:[...batch.map(x=>x.part),part]});
-    if(bytes(next)>384*1024){if(batch.length)break;await change([],[row.id]);gaps++;queueCount--;continue;}
-    batch.push({row,part});payload=next;if(batch.length===4)break;
-   }
-   if(!batch.length||epoch!==generation)return;
-   let wire=new TextEncoder().encode(payload),contentType='application/json';
-   if(typeof CompressionStream==='function'){
-    try{const compressed=new Uint8Array(await new Response(new Blob([wire]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
-     if(compressed.length<wire.length){wire=compressed;contentType='application/gzip';}
-    }catch{/* Plain JSON remains bounded and valid on older browsers. */}
-   }
-   if(epoch!==generation||stopped)return;
-   traffic.requests++;traffic.body_bytes+=wire.byteLength;traffic.uncompressed_bytes+=bytes(payload);
-   const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:wire,signal:activeController.signal});
-   if(epoch!==generation)return;
-   if(!r.ok){
-    const retryHeader=r.headers.get('Retry-After'),numericDelay=Number(retryHeader);
-    const delay=Number.isFinite(numericDelay)?numericDelay:(Date.parse(retryHeader)-now())/1000;
-    if(r.status===401){identity=null;save('observatory-identity',null);}
-    // A batch rejection is not proof that individual queued events are invalid.
-    retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));throw Error('Upload '+r.status);
-   }
-   const ack=await r.json();if(!Array.isArray(ack.parts))throw Error('Missing acknowledgement');
-   const saved=[],rejected=[];
-   for(const {row} of batch){
-    const matches=ack.parts.filter(a=>a.id===row.id);if(matches.length!==1)throw Error('Missing or duplicate acknowledgement');
-    const result=matches[0];
-    if(result.status===200){saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
-    else if([400,413,422].includes(result.status))rejected.push(row.id);
-    else throw Error('Unconfirmed part');
-   }
-   if(epoch!==generation)return;
-   await transaction('readwrite',store=>{if(epoch!==generation)return;for(const row of saved)store.put(row);for(const id of rejected)store.delete(id);});
-   if(epoch!==generation)return;
-   queueCount-=saved.length+rejected.length;gaps+=rejected.length;save('observatory-gaps',gaps);
-   failures=0;status=rejected.length?'An upload was rejected':'Sent';
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/symbols)
 
-  }catch(_){status='Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
-  finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped)setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
- }
- async function setConsent(value){
-  generation++;controller?.abort();consent=value===true;save('observatory-consent',consent);
-  if(!consent){await chain;try{await transaction('readwrite',s=>s.clear());queueCount=0;}catch{}save('observatory-session',null);}
-  else {enqueue([localEvent('consent',{version:1})]);flush();}
- }
- async function deleteData(){
-  stopped=true;await setConsent(false);
-  if(!identity){status='Local data deleted';stopped=false;return;}
-  try{
-   const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+identity.token,'X-Installation':identity.id}});
-   if(!r.ok)throw Error('Delete failed');identity=null;save('observatory-identity',null);status='Collected data deleted';
-  }catch{status='Online deletion pending; please try again';}
-  finally{stopped=false;}
- }
- function failure(kind,message,manual=false){
-  if(consent!==true&&!manual)return;
-  const text=serializeError(message), signature=kind+':'+text;
-  const count=(seenFailures.get(signature)||0)+1;
-  if(seenFailures.size>=32&&!seenFailures.has(signature))return;
-  seenFailures.set(signature,count);if(count!==1&&count%100!==0)return;
-  let diagnostic={};try{diagnostic=JSON.parse(window.dreamDiagnostics?.report()||'{}');}catch{}
-  // Only an allowlisted bounded projection is transmitted, never arbitrary local diagnostics.
-  const current=(kind==='unclean_session'?diagnostic.previous:diagnostic.current)||{};
-  const data={kind,message:text,count,device:{width:innerWidth,height:innerHeight,userAgent:String(navigator.userAgent||'').slice(0,300)},previous_session_id:kind==='unclean_session'?previous?.id:undefined,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,engine:current.engine||{},events:(current.events||[]).slice(-20),description:manual?text:''};
-  let cleaned=JSON.parse(JSON.stringify(data).replace(/https?:\/\/[^\s"\\]+/g,'[url]'));
-  if(bytes(JSON.stringify(cleaned))>MAX_REPORT)cleaned={kind,message:text,count,snapshot_id:lastSnapshot,truncated:true};
-  enqueue([localEvent('failure',cleaned)],manual).then(flush);
- }
- function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- async function exportLocal(){
-  await chain;const rows=await all(), groups=new Map(),events=[];
-  for(const row of rows){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
-  for(const parts of groups.values()){parts.sort((a,b)=>a.index-b.index);if(parts.length===parts[0].count)try{events.push(JSON.parse(parts.map(p=>p.data).join('')));}catch{}}
-  download({schema:1,events,gaps,scope:'bounded_local_history'},'dreamcore-playtest.json');
- }
- function open(){
-  document.getElementById('observatory-panel')?.remove();
-  const first=consent===null,previousFocus=document.activeElement;
-  const panel=document.createElement('dialog');panel.id='observatory-panel';panel.lang='en';
-  panel.setAttribute('aria-labelledby','observatory-title');panel.setAttribute('aria-describedby','observatory-intro');
-  const css=document.createElement('style');css.textContent=`
-   #observatory-panel{box-sizing:border-box;width:min(540px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:28px;border:1px solid #74638e;border-radius:22px;background:#201d32;color:#f4efff;font:16px/1.55 system-ui;box-shadow:0 24px 90px #0008;color-scheme:dark}
-   #observatory-panel::backdrop{background:#100f20c9}
-   #observatory-panel *{box-sizing:border-box}#observatory-panel h2{font-size:26px;line-height:1.2;margin:8px 0 16px}#observatory-panel p{margin:12px 0;color:#d3cadd}#observatory-panel .eyebrow{color:#bea8e5;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
-   #observatory-panel .choices{display:grid;gap:10px;margin-top:22px}#observatory-panel button{font:inherit;cursor:pointer;min-height:48px;border:1px solid #9380af;border-radius:12px;padding:11px 16px;background:#39304f;color:#fff;text-align:center}#observatory-panel button:hover{background:#514267}#observatory-panel button:focus-visible,#observatory-panel summary:focus-visible,#observatory-panel textarea:focus-visible{outline:3px solid #dec4ff;outline-offset:3px}#observatory-panel button:disabled{opacity:.6;cursor:wait}
-   #observatory-panel details{margin-top:16px;border-top:1px solid #50445e;padding-top:14px}#observatory-panel summary{cursor:pointer;color:#dcc9f2}#observatory-panel ul{padding-left:22px;color:#d3cadd}#observatory-panel .small{font-size:13px;color:#b9afc8}#observatory-panel textarea{display:block;width:100%;min-height:100px;margin:12px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:12px;color:#fff;font:inherit}#observatory-panel .tools{display:grid;gap:10px;margin-top:14px}
-   @media(max-width:420px){#observatory-panel{padding:22px}#observatory-panel h2{font-size:24px}}
-  `;panel.append(css);
-  const add=(tag,text,parent=panel)=>{const n=document.createElement(tag);if(text)n.textContent=text;parent.append(n);return n;};
-  const close=()=>{panel.close();panel.remove();if(previousFocus?.isConnected)previousFocus.focus();};
-  const button=(text,fn,parent)=>{const b=add('button',text,parent);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch{notice.textContent='Something went wrong. Please try again.';}finally{b.disabled=false;}};return b;};
-  add('div','Dreamcore · Playtest').className='eyebrow';
-  add('h2',first?'Help Dreamcore grow?':'Playtest data & feedback').id='observatory-title';
-  add('p',first?'Share your runs and error reports with the developer to help improve builds and fix bugs. Every little bit helps!':'Choose whether to automatically share your runs and error reports with the developer.').id='observatory-intro';
-  add('p','Sharing is optional and never affects gameplay. Change your choice anytime in Settings → Playtest & feedback.').className='small';
-  const details=add('details');add('summary','What gets shared?',details);
-  const list=add('ul',null,details);
-  for(const text of ['Run progress, choices, skills, equipment and results.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.'])add('li',text,list);
-  add('p','Data is stored privately on Cloudflare for 90 days. Runs marked as references are kept longer.',details);
-  add('p','Turning sharing off stops collection and clears pending uploads. You can also delete previously shared data here.',details);
-  const notice=add('p');notice.className='small';notice.setAttribute('role','status');
-  if(!endpoint)notice.textContent='Sharing is not available in this version yet.';
-  const choices=add('div');choices.className='choices';
-  if(first){
-   button('Yes, share playtest data',async()=>{await setConsent(true);close();},choices).disabled=!endpoint;
-   button('Play without sharing',async()=>{await setConsent(false);close();},choices);
-  }else{
-   add('p',consent?'Automatic sharing is on.':'Automatic sharing is off.');
-   button(consent?'Turn sharing off':'Turn sharing on',async()=>{await setConsent(!consent);open();},choices).disabled=!endpoint&&!consent;
-   button('Back to the game',close,choices);
-   const tools=add('details');add('summary','Manage saved data',tools);
-   add('p',`${queueCount} upload parts pending · ${status}${gaps?' · Some records may be missing':''}`,tools).className='small';
-   const actions=add('div',null,tools);actions.className='tools';
-   button('Download a local copy',exportLocal,actions);
-   button('Delete my collected data',async()=>{if(!window.confirm('Delete your collected playtest data and turn sharing off?'))return;await deleteData();open();document.querySelector('#observatory-panel [role="status"]').textContent=status;},actions);
-   const report=add('details');add('summary','Report a problem',report);
-   add('p','This sends your description and technical context once, even if automatic sharing is off.',report).className='small';
-   const input=add('textarea',null,report);input.placeholder='What happened? Please leave out personal information.';input.setAttribute('aria-label','Problem description');input.maxLength=2000;
-   button('Send this report',()=>{if(!input.value.trim()){notice.textContent='Please briefly describe what happened.';input.focus();return;}failure('manual',input.value,true);notice.textContent='Thank you! Your report will be sent when a connection is available.';input.value='';},report).disabled=!endpoint;
-  }
-  panel.addEventListener('cancel',e=>{e.preventDefault();if(first)setConsent(false).then(close);else close();});
-  document.body.append(panel);panel.showModal();
- }
-
- window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
- addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);});
- addEventListener('online',()=>{retryAt=0;flush();});
- addEventListener('error',e=>failure('javascript',e.error||e.message));
- addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
- document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);
- document.addEventListener('webglcontextrestored',()=>enqueue([localEvent('context_restored',{})]),true);
- addEventListener('pagehide',e=>{if(consent)save('observatory-session',{id:session,closed:true,persisted:!!e.persisted,context:lastContext,at:now()});});
- addEventListener('pageshow',()=>{if(consent)save('observatory-session',{id:session,closed:false,context:lastContext,at:now()});});
- addEventListener('DOMContentLoaded',()=>{
-  if(consent===null)open();
- });
- if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}
- if(consent===true&&previous&&!previous.closed){lastContext=previous.context||{};lastSnapshot=previous.snapshot_id||'';lastConfirmedSnapshot=previous.confirmed_snapshot_id||'';failure('unclean_session','Vorherige Sitzung endete ohne Abschluss; Ursache unbekannt');}
- setInterval(flush,30000);
-})();
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://scripts.sil.org/OFL
 
 
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
