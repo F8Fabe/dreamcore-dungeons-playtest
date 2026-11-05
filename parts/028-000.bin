@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "build": "20261104T214321945322Z",
+  "build": "20261105T140652191084Z",
   "fixes": [
     {
       "bug_id": 1,
@@ -8,9 +8,9 @@
     }
   ],
   "artifacts": {
-    "build-manifest.json": "581425a8ed0d2f7efb174c02830c10694821f5968685b855f70947c2f705fd6b",
-    "changelog.html": "d766cf99748bc1c676f01d3fe86185bc2abaa6741a579dc8280b3f8f9e24be0a",
-    "changelog.json": "e2c7f08b76247ee0414deca67cd0f2b5740d9f7a519eb6c6f17bef4b4a4e8c2a",
+    "build-manifest.json": "bbb1ef5b67dce12670717bf194d2b5532ec60cbe4c410e63fc6fa9ae685b67aa",
+    "changelog.html": "b7b0e47d8eb367d42feeb599c6a8c0bb8fc4092047d6eaa957c71bedb81275dd",
+    "changelog.json": "5a954619c3ba71b86b077ca3ffcd257615296ce9f1fb58880f30ace5fd2d4712",
     "diagnostics.js": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
@@ -20,24 +20,23 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "5b75b077f94ac851f0e5c4cdd3e3969671f56f2c46e5293872e5f8750ed25297",
+    "index.html": "7d2c62dde3a6ea4318022a020a24ded145e53340ebe3e5b9752a8332bb0cb2da",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "b8f41230fabd0f62233277757858ddbf564ed202db3e320152787a8a94af5d8a",
-    "index.pck": "3b6648c3ffdc209a16f7512cd2fb6ea432d18035177ac41325529c8bfa025cfb",
+    "index.pck": "a38ebf66d0f9897d7f099191f58053c4b1192e432b727a8604af33d2640981d7",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
     "observatory-config.js": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0",
-    "observatory.js": "927b1bbe921c9644f8a62fc1f220e516d9c268aa2cafd68ec2e893957c5f71a1",
+    "observatory.js": "d09c10d832384bf82c0d0fd1f64d3f4e67447dcaaf6f380a386570d2df1c187d",
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Equipment and loot rework",
-    "summary": "Loot now equips directly or becomes crafting materials. Replacing equipment automatically salvages the previous item, and equipped gear can be crafted between fights.",
+    "title": "Playtest upload improvements",
+    "summary": "Playtest uploads now respect service retry times and keep daily-limit pauses after reloading. Recording and uploads read less local history.",
     "changes": [
-      "Removed the backpack and backup item slots. Only equipped gear is retained; each pending loot item must be equipped or salvaged before continuing.",
-      "Equipping loot or accepting the free merchant item replaces the same-slot item and salvages it once. Comparisons show the replacement material and skills incompatible with the new weapon.",
-      "Replaced inventory swapping with a four-slot equipment screen. Crafting works on equipped hero gear outside combat and on pending loot; companion equipment remains fixed."
+      "Playtest uploads honor server retry delays. Daily-limit pauses persist across page reloads and reconnects while pending records remain queued within the existing storage limit.",
+      "Reduced local history reads during playtest recording and uploads. Existing acknowledged history remains available for local export."
     ]
   }
 }

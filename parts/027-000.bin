@@ -9,36 +9,82 @@
  const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
  let consent=read('observatory-consent',null), identity=read('observatory-identity',null);
  let generation=0, controller=null;
- let busy=false, stopped=false, retryAt=0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
+ let busy=false, stopped=false, retryAt=Number(read('observatory-retry-at',0))||0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
  let status='Ready', queueCount=0, gaps=read('observatory-gaps',0), lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
  const session=uuid(), seenFailures=new Map();
  const traffic={requests:0,body_bytes:0,uncompressed_bytes:0};
  const previous=read('observatory-session',null);
  const now=()=>Date.now();
+ const requestValue=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+ const validRow=row=>typeof row?.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created);
+ const emptyState=()=>({id:'state',rows:0,bytes:0,pending:0});
  function database(){
-  if(!dbPromise) dbPromise=new Promise((resolve,reject)=>{
-   const r=indexedDB.open('dreamcore-observatory-v1',1);
-   r.onupgradeneeded=()=>r.result.createObjectStore('outbox',{keyPath:'id'});
-   r.onsuccess=()=>{db=r.result;resolve(db);};r.onerror=()=>reject(r.error);
+  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+   const r=indexedDB.open('dreamcore-observatory-v1',2);
+   r.onupgradeneeded=()=>{
+    const d=r.result,store=d.objectStoreNames.contains('outbox')?r.transaction.objectStore('outbox'):d.createObjectStore('outbox',{keyPath:'id'});
+    if(!store.indexNames.contains('delivery'))store.createIndex('delivery',['delivery','created','index']);
+    if(!store.indexNames.contains('event'))store.createIndex('event','event_id');
+    const meta=d.createObjectStore('meta',{keyPath:'id'}),state=emptyState();let lost=0;
+    const cursor=store.openCursor();cursor.onsuccess=()=>{
+     const c=cursor.result;if(!c){meta.put(state);if(lost){gaps+=lost;save('observatory-gaps',gaps);}return;}
+     const row=c.value;if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+    };
+   };
+   r.onblocked=()=>{dbPromise=null;reject(Error('Close other game tabs to update local playtest storage'));};
+   r.onerror=()=>{dbPromise=null;reject(r.error);};
+   r.onsuccess=()=>{db=r.result;db.onversionchange=()=>{db.close();dbPromise=null;};resolve(db);};
   });
   return dbPromise;
  }
- async function transaction(mode,fn){
+ async function outbox(fn){
   const d=await database();return new Promise((resolve,reject)=>{
-   const t=d.transaction('outbox',mode),store=t.objectStore('outbox');let value;
-   t.oncomplete=()=>resolve(value);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Storage aborted'));
-   fn(store,v=>{value=v;});
+   const t=d.transaction(['outbox','meta'],'readwrite');let value,failure;
+   t.oncomplete=()=>resolve(value);t.onerror=t.onabort=()=>reject(failure||t.error||Error('Storage aborted'));
+   Promise.resolve(fn(t.objectStore('outbox'),t.objectStore('meta'))).then(v=>{value=v;}).catch(e=>{failure=e;try{t.abort();}catch{reject(e);}});
   });
  }
- const all=async()=>{
-  const rows=await transaction('readonly',(s,done)=>{s.getAll().onsuccess=e=>done(e.target.result);}),valid=[],bad=[];
-  for(const row of rows){
-   if(typeof row.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created))valid.push({...row,size:bytes(row.data)});
-   else bad.push(row.id);
-  }
-  if(bad.length){await change([],bad);gaps+=bad.length;save('observatory-gaps',gaps);}return valid;
- };
- const change=(put=[],remove=[])=>transaction('readwrite',s=>{remove.forEach(id=>s.delete(id));put.forEach(v=>s.put(v));});
+ async function stateFor(store,meta){
+  let state=await requestValue(meta.get('state'));const count=await requestValue(store.count());
+  if(state&&state.rows===count)return {state,lost:0};
+  // Repair only after an unexpected count/missing metadata. Normal enqueue/flush
+  // never loads all acknowledged history. Cursor repair bounds retained memory.
+  state=emptyState();let lost=0;
+  await new Promise((resolve,reject)=>{const r=store.openCursor();r.onerror=()=>reject(r.error);r.onsuccess=()=>{
+   const c=r.result;if(!c){resolve();return;}const row=c.value;
+   if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+  };});return {state,lost};
+ }
+ const pendingRange=()=>IDBKeyRange.bound([0],[1],false,true);
+ async function change(put=[],remove=[],guard=()=>true){
+  const receipt=await outbox(async(store,meta)=>{
+   if(!guard())throw Error('Stale upload');const repaired=await stateFor(store,meta),state=repaired.state;let lost=repaired.lost;
+   const subtract=row=>{state.rows--;state.bytes-=row.size;if(!row.acked)state.pending--;};
+   for(const id of new Set(remove)){const old=await requestValue(store.get(id));if(old){subtract(old);store.delete(id);}}
+   for(const row of new Map(put.map(r=>[r.id,r])).values()){
+    const old=await requestValue(store.get(row.id));if(old?.acked&&!row.acked)continue;
+    if(old)subtract(old);row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;store.put(row);
+   }
+   // Evict whole events, oldest acknowledged first, then oldest pending events.
+   while(state.bytes>BUDGET){
+    let first=await requestValue(store.index('delivery').openCursor(IDBKeyRange.bound([1],[2],false,true)));
+    if(!first)first=await requestValue(store.index('delivery').openCursor(pendingRange()));
+    if(!first)break;
+    const parts=await requestValue(store.index('event').getAll(first.value.event_id));
+    if(parts.some(row=>!row.acked))lost++;
+    for(const row of parts){subtract(row);store.delete(row.id);}
+   }
+   if(!guard())throw Error('Stale upload');meta.put(state);return {state,lost};
+  });
+  queueCount=receipt.state.pending;if(receipt.lost){gaps+=receipt.lost;save('observatory-gaps',gaps);}return receipt;
+ }
+ async function pending(){
+  const receipt=await change();if(!receipt.state.pending)return [];
+  const d=await database(),t=d.transaction('outbox','readonly');
+  return requestValue(t.objectStore('outbox').index('delivery').getAll(pendingRange(),4));
+ }
+ const all=async()=>{await change();const d=await database(),t=d.transaction('outbox','readonly');return requestValue(t.objectStore('outbox').getAll());};
+ async function clearOutbox(){await outbox((store,meta)=>{store.clear();meta.put(emptyState());});queueCount=0;}
  function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
  function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
  function enqueue(events,oneShot=false){
@@ -46,7 +92,7 @@
   const epoch=generation;
   chain=chain.then(async()=>{
    if(stopped||(!oneShot&&(consent!==true||epoch!==generation)))return;
-   const existing=await all(), rows=[];
+   const rows=[];
    for(const raw of events){
     const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now()};
     lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
@@ -58,12 +104,7 @@
      rows.push({id,event_id:e.id,index,count,data,created:now(),size:bytes(data),oneShot,run_id:e.run_id,snapshot_id:e.kind==='snapshot'?e.data.snapshot_id:''});
     }
    }
-   const unique=new Map(existing.concat(rows).map(r=>[r.id,r]));
-   const sorted=[...unique.values()].sort((a,b)=>Number(!!b.acked)-Number(!!a.acked)||a.created-b.created||a.index-b.index);
-   let size=sorted.reduce((n,r)=>n+r.size,0);const remove=[];
-   while(size>BUDGET&&sorted.length){const event=sorted[0].event_id, lost=sorted.some(r=>r.event_id===event&&!r.acked);for(let i=sorted.length-1;i>=0;i--)if(sorted[i].event_id===event){size-=sorted[i].size;remove.push(sorted[i].id);sorted.splice(i,1);}if(lost)gaps++;}
-   await change(rows.filter(r=>!remove.includes(r.id)),remove);
-   queueCount=sorted.filter(r=>!r.acked).length;save('observatory-gaps',gaps);
+   await change(rows);save('observatory-gaps',gaps);
    if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,at:now()});
   }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;});
   if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
@@ -79,19 +120,23 @@
   };
   return navigator.locks?.request?navigator.locks.request('dreamcore-observatory-registration',create):create();
  }
- async function flush(){
+ let flushTask=null;
+ function flush(){
+  if(!flushTask)flushTask=flushOnce().finally(()=>{flushTask=null;});
+  return flushTask;
+ }
+ async function flushOnce(){
   if(busy||stopped||!endpoint||now()<retryAt)return;
   busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
   try{
-   await chain;const rows=(await all()).filter(r=>!r.acked).sort((a,b)=>a.created-b.created||a.index-b.index);
-   queueCount=rows.length;if(!rows.length)return;
+   await chain;const rows=await pending();if(!rows.length)return;
    const auth=await register();
    const batch=[];let payload='';
    for(const row of rows){
     if(stopped||(!consent&&!row.oneShot))continue;
     const part={id:row.id,event_id:row.event_id,index:row.index,count:row.count,data:row.data,gaps};
     const next=JSON.stringify({parts:[...batch.map(x=>x.part),part]});
-    if(bytes(next)>384*1024){if(batch.length)break;await change([],[row.id]);gaps++;queueCount--;continue;}
+    if(bytes(next)>384*1024){if(batch.length)break;await change([],[row.id]);gaps++;continue;}
     batch.push({row,part});payload=next;if(batch.length===4)break;
    }
    if(!batch.length||epoch!==generation)return;
@@ -106,11 +151,14 @@
    const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:wire,signal:activeController.signal});
    if(epoch!==generation)return;
    if(!r.ok){
+    const problem=await r.json().catch(()=>({}));
     const retryHeader=r.headers.get('Retry-After'),numericDelay=Number(retryHeader);
     const delay=Number.isFinite(numericDelay)?numericDelay:(Date.parse(retryHeader)-now())/1000;
     if(r.status===401){identity=null;save('observatory-identity',null);}
     // A batch rejection is not proof that individual queued events are invalid.
-    retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));throw Error('Upload '+r.status);
+    retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));
+    if(['daily_read_limit','daily_write_limit'].includes(problem.error)){retryAt=Math.max(retryAt,Math.min(now()+86400000,Number(problem.retry_at)||0));save('observatory-retry-at',retryAt);}
+    throw Error('Upload '+r.status);
    }
    const ack=await r.json();if(!Array.isArray(ack.parts))throw Error('Missing acknowledgement');
    const saved=[],rejected=[];
@@ -122,17 +170,17 @@
     else throw Error('Unconfirmed part');
    }
    if(epoch!==generation)return;
-   await transaction('readwrite',store=>{if(epoch!==generation)return;for(const row of saved)store.put(row);for(const id of rejected)store.delete(id);});
+   await change(saved,rejected,()=>epoch===generation&&!stopped);
    if(epoch!==generation)return;
-   queueCount-=saved.length+rejected.length;gaps+=rejected.length;save('observatory-gaps',gaps);
-   failures=0;status=rejected.length?'An upload was rejected':'Sent';
+   gaps+=rejected.length;save('observatory-gaps',gaps);
+   failures=0;retryAt=0;save('observatory-retry-at',0);status=rejected.length?'An upload was rejected':'Sent';
 
-  }catch(_){status='Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
+  }catch(_){status=Number(read('observatory-retry-at',0))>now()?`Uploads paused until ${new Date(retryAt).toLocaleString()}. Daily upload-service limit reached.`:'Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
   finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped)setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
  }
  async function setConsent(value){
   generation++;controller?.abort();consent=value===true;save('observatory-consent',consent);
-  if(!consent){await chain;try{await transaction('readwrite',s=>s.clear());queueCount=0;}catch{}save('observatory-session',null);}
+  if(!consent){await chain;try{await clearOutbox();}catch{}save('observatory-session',null);}
   else {enqueue([localEvent('consent',{version:1})]);flush();}
  }
  async function deleteData(){
@@ -218,8 +266,9 @@
  }
 
  window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
- addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);});
- addEventListener('online',()=>{retryAt=0;flush();});
+ if(consent===true||identity)change().catch(()=>{status='Local storage unavailable; you can keep playing';});
+ addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);if(e.key==='observatory-retry-at')retryAt=Math.max(retryAt,Number(read('observatory-retry-at',0))||0);});
+ addEventListener('online',()=>{retryAt=Math.max(0,Number(read('observatory-retry-at',0))||0);flush();});
  addEventListener('error',e=>failure('javascript',e.error||e.message));
  addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
  document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);

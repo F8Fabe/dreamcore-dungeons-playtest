@@ -11,23 +11,23 @@
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "581425a8ed0d2f7efb174c02830c10694821f5968685b855f70947c2f705fd6b"
+    "sha256": "bbb1ef5b67dce12670717bf194d2b5532ec60cbe4c410e63fc6fa9ae685b67aa"
   },
   {
     "path": "changelog.html",
-    "bytes": 4851,
+    "bytes": 5578,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "d766cf99748bc1c676f01d3fe86185bc2abaa6741a579dc8280b3f8f9e24be0a"
+    "sha256": "b7b0e47d8eb367d42feeb599c6a8c0bb8fc4092047d6eaa957c71bedb81275dd"
   },
   {
     "path": "changelog.json",
-    "bytes": 2896,
+    "bytes": 3525,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "e2c7f08b76247ee0414deca67cd0f2b5740d9f7a519eb6c6f17bef4b4a4e8c2a"
+    "sha256": "5a954619c3ba71b86b077ca3ffcd257615296ce9f1fb58880f30ace5fd2d4712"
   },
   {
     "path": "diagnostics.js",
@@ -107,7 +107,7 @@
     "parts": [
       "013-000.bin"
     ],
-    "sha256": "5b75b077f94ac851f0e5c4cdd3e3969671f56f2c46e5293872e5f8750ed25297"
+    "sha256": "7d2c62dde3a6ea4318022a020a24ded145e53340ebe3e5b9752a8332bb0cb2da"
   },
   {
     "path": "index.icon.png",
@@ -135,7 +135,7 @@
       "016-003.bin",
       "016-004.bin"
     ],
-    "sha256": "3b6648c3ffdc209a16f7512cd2fb6ea432d18035177ac41325529c8bfa025cfb"
+    "sha256": "a38ebf66d0f9897d7f099191f58053c4b1192e432b727a8604af33d2640981d7"
   },
   {
     "path": "index.png",
@@ -220,19 +220,19 @@
   },
   {
     "path": "observatory.js",
-    "bytes": 20136,
+    "bytes": 23800,
     "parts": [
       "027-000.bin"
     ],
-    "sha256": "927b1bbe921c9644f8a62fc1f220e516d9c268aa2cafd68ec2e893957c5f71a1"
+    "sha256": "d09c10d832384bf82c0d0fd1f64d3f4e67447dcaaf6f380a386570d2df1c187d"
   },
   {
     "path": "release.json",
-    "bytes": 3088,
+    "bytes": 2859,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "909d36a9860a9259d52006e10a0d47f8dffe10b3a4f6c1a2a768737b68a53413"
+    "sha256": "ff93605525ef60361b8c458348e27058e090e9ad5a2ac880e105ee25f7b81641"
   },
   {
     "path": "sleeping-trio-v1.webp",

@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "build": "20261105T140652191084Z",
+      "title": "Playtest upload improvements",
+      "summary": "Playtest uploads now respect service retry times and keep daily-limit pauses after reloading. Recording and uploads read less local history.",
+      "changes": [
+        "Playtest uploads honor server retry delays. Daily-limit pauses persist across page reloads and reconnects while pending records remain queued within the existing storage limit.",
+        "Reduced local history reads during playtest recording and uploads. Existing acknowledged history remains available for local export."
+      ]
+    },
+    {
       "build": "20261104T214321945322Z",
       "title": "Equipment and loot rework",
       "summary": "Loot now equips directly or becomes crafting materials. Replacing equipment automatically salvages the previous item, and equipped gear can be crafted between fights.",
