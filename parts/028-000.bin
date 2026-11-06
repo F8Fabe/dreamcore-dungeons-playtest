@@ -1,42 +1,294 @@
-{
-  "schema": 1,
-  "build": "20261105T140652191084Z",
-  "fixes": [
-    {
-      "bug_id": 1,
-      "fix_id": "bfdb72ef861e5740bf469376810c2064b6c22ca2a6f33f97c0c2da1de81609f0"
+/* Offline-first, consent-gated playtest transport. No gameplay state is mutated. */
+(() => {
+ 'use strict';
+ const cfg=window.dreamObservatoryConfig||{}, endpoint=(cfg.endpoint||'').replace(/\/$/, '');
+ const BUDGET=20*1024*1024, PART=60000, MAX_REPORT=64*1024;
+ const bytes=s=>new TextEncoder().encode(s).length;
+ const uuid=()=>crypto.randomUUID();
+ const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
+ const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
+ let consent=read('observatory-consent',null), identity=read('observatory-identity',null);
+ let generation=0, controller=null;
+ let busy=false, stopped=false, retryAt=Number(read('observatory-retry-at',0))||0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
+ let status='Ready', queueCount=0, gaps=read('observatory-gaps',0), lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
+ const session=uuid(), seenFailures=new Map();
+ const traffic={requests:0,body_bytes:0,uncompressed_bytes:0};
+ const previous=read('observatory-session',null);
+ let loadingContext=null;
+ const now=()=>Date.now();
+ const requestValue=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+ const validRow=row=>typeof row?.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created);
+ const emptyState=()=>({id:'state',rows:0,bytes:0,pending:0});
+ function database(){
+  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+   const r=indexedDB.open('dreamcore-observatory-v1',2);
+   r.onupgradeneeded=()=>{
+    const d=r.result,store=d.objectStoreNames.contains('outbox')?r.transaction.objectStore('outbox'):d.createObjectStore('outbox',{keyPath:'id'});
+    if(!store.indexNames.contains('delivery'))store.createIndex('delivery',['delivery','created','index']);
+    if(!store.indexNames.contains('event'))store.createIndex('event','event_id');
+    const meta=d.createObjectStore('meta',{keyPath:'id'}),state=emptyState();let lost=0;
+    const cursor=store.openCursor();cursor.onsuccess=()=>{
+     const c=cursor.result;if(!c){meta.put(state);if(lost){gaps+=lost;save('observatory-gaps',gaps);}return;}
+     const row=c.value;if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+    };
+   };
+   r.onblocked=()=>{dbPromise=null;reject(Error('Close other game tabs to update local playtest storage'));};
+   r.onerror=()=>{dbPromise=null;reject(r.error);};
+   r.onsuccess=()=>{db=r.result;db.onversionchange=()=>{db.close();dbPromise=null;};resolve(db);};
+  });
+  return dbPromise;
+ }
+ async function outbox(fn){
+  const d=await database();return new Promise((resolve,reject)=>{
+   const t=d.transaction(['outbox','meta'],'readwrite');let value,failure;
+   t.oncomplete=()=>resolve(value);t.onerror=t.onabort=()=>reject(failure||t.error||Error('Storage aborted'));
+   Promise.resolve(fn(t.objectStore('outbox'),t.objectStore('meta'))).then(v=>{value=v;}).catch(e=>{failure=e;try{t.abort();}catch{reject(e);}});
+  });
+ }
+ async function stateFor(store,meta){
+  let state=await requestValue(meta.get('state'));const count=await requestValue(store.count());
+  if(state&&state.rows===count)return {state,lost:0};
+  // Repair only after an unexpected count/missing metadata. Normal enqueue/flush
+  // never loads all acknowledged history. Cursor repair bounds retained memory.
+  state=emptyState();let lost=0;
+  await new Promise((resolve,reject)=>{const r=store.openCursor();r.onerror=()=>reject(r.error);r.onsuccess=()=>{
+   const c=r.result;if(!c){resolve();return;}const row=c.value;
+   if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+  };});return {state,lost};
+ }
+ const pendingRange=()=>IDBKeyRange.bound([0],[1],false,true);
+ async function change(put=[],remove=[],guard=()=>true){
+  const receipt=await outbox(async(store,meta)=>{
+   if(!guard())throw Error('Stale upload');const repaired=await stateFor(store,meta),state=repaired.state;let lost=repaired.lost;
+   const subtract=row=>{state.rows--;state.bytes-=row.size;if(!row.acked)state.pending--;};
+   for(const id of new Set(remove)){const old=await requestValue(store.get(id));if(old){subtract(old);store.delete(id);}}
+   for(const row of new Map(put.map(r=>[r.id,r])).values()){
+    const old=await requestValue(store.get(row.id));if(old?.acked&&!row.acked)continue;
+    if(old)subtract(old);row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;store.put(row);
+   }
+   // Evict whole events, oldest acknowledged first, then oldest pending events.
+   while(state.bytes>BUDGET){
+    let first=await requestValue(store.index('delivery').openCursor(IDBKeyRange.bound([1],[2],false,true)));
+    if(!first)first=await requestValue(store.index('delivery').openCursor(pendingRange()));
+    if(!first)break;
+    const parts=await requestValue(store.index('event').getAll(first.value.event_id));
+    if(parts.some(row=>!row.acked))lost++;
+    for(const row of parts){subtract(row);store.delete(row.id);}
+   }
+   if(!guard())throw Error('Stale upload');meta.put(state);return {state,lost};
+  });
+  queueCount=receipt.state.pending;if(receipt.lost){gaps+=receipt.lost;save('observatory-gaps',gaps);}return receipt;
+ }
+ async function pending(){
+  const receipt=await change();if(!receipt.state.pending)return [];
+  const d=await database(),t=d.transaction('outbox','readonly');
+  return requestValue(t.objectStore('outbox').index('delivery').getAll(pendingRange(),4));
+ }
+ const all=async()=>{await change();const d=await database(),t=d.transaction('outbox','readonly');return requestValue(t.objectStore('outbox').getAll());};
+ async function clearOutbox(){await outbox((store,meta)=>{store.clear();meta.put(emptyState());});queueCount=0;}
+ function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
+ function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
+ function enqueue(events,oneShot=false){
+  if((consent!==true&&!oneShot)||stopped)return Promise.resolve();
+  const epoch=generation;
+  chain=chain.then(async()=>{
+   if(stopped||(!oneShot&&(consent!==true||epoch!==generation)))return;
+   const rows=[];
+   for(const raw of events){
+    const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now()};
+    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
+    if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
+    const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
+    if(count>72||bytes(text)>4*1024*1024){gaps++;continue;}
+    for(let index=0;index<count;index++){
+     const data=text.slice(index*PART,(index+1)*PART), id=e.id+':'+index;
+     rows.push({id,event_id:e.id,index,count,data,created:now(),size:bytes(data),oneShot,run_id:e.run_id,snapshot_id:e.kind==='snapshot'?e.data.snapshot_id:''});
     }
-  ],
-  "artifacts": {
-    "build-manifest.json": "bbb1ef5b67dce12670717bf194d2b5532ec60cbe4c410e63fc6fa9ae685b67aa",
-    "changelog.html": "b7b0e47d8eb367d42feeb599c6a8c0bb8fc4092047d6eaa957c71bedb81275dd",
-    "changelog.json": "5a954619c3ba71b86b077ca3ffcd257615296ce9f1fb58880f30ace5fd2d4712",
-    "diagnostics.js": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da",
-    "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
-    "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "dreamcore-64.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "dreamcore.webmanifest": "8ed15ba08a539dc197f3b682e27bd251b4da4ff98ce2e4e7ecb944562bad360c",
-    "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
-    "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "7d2c62dde3a6ea4318022a020a24ded145e53340ebe3e5b9752a8332bb0cb2da",
-    "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "index.js": "b8f41230fabd0f62233277757858ddbf564ed202db3e320152787a8a94af5d8a",
-    "index.pck": "a38ebf66d0f9897d7f099191f58053c4b1192e432b727a8604af33d2640981d7",
-    "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
-    "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
-    "observatory-config.js": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0",
-    "observatory.js": "d09c10d832384bf82c0d0fd1f64d3f4e67447dcaaf6f380a386570d2df1c187d",
-    "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
-  },
-  "notes": {
-    "title": "Playtest upload improvements",
-    "summary": "Playtest uploads now respect service retry times and keep daily-limit pauses after reloading. Recording and uploads read less local history.",
-    "changes": [
-      "Playtest uploads honor server retry delays. Daily-limit pauses persist across page reloads and reconnects while pending records remain queued within the existing storage limit.",
-      "Reduced local history reads during playtest recording and uploads. Existing acknowledged history remains available for local export."
-    ]
+   }
+   await change(rows);save('observatory-gaps',gaps);
+   if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,loading:loadingContext,at:now()});
+  }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;});
+  if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
+  return chain;
+ }
+ async function register(){
+  const create=async()=>{
+   identity=read('observatory-identity',null);
+   if(identity)return identity;
+   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller?.signal});
+   if(!r.ok)throw Error('Registration '+r.status);
+   const value=await r.json();if(!save('observatory-identity',value))throw Error('Cannot retain upload identity');identity=value;return value;
+  };
+  return navigator.locks?.request?navigator.locks.request('dreamcore-observatory-registration',create):create();
+ }
+ let flushTask=null;
+ function flush(){
+  if(!flushTask)flushTask=flushOnce().finally(()=>{flushTask=null;});
+  return flushTask;
+ }
+ async function flushOnce(){
+  if(busy||stopped||!endpoint||now()<retryAt)return;
+  busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
+  try{
+   await chain;const rows=await pending();if(!rows.length)return;
+   const auth=await register();
+   const batch=[];let payload='';
+   for(const row of rows){
+    if(stopped||(!consent&&!row.oneShot))continue;
+    const part={id:row.id,event_id:row.event_id,index:row.index,count:row.count,data:row.data,gaps};
+    const next=JSON.stringify({parts:[...batch.map(x=>x.part),part]});
+    if(bytes(next)>384*1024){if(batch.length)break;await change([],[row.id]);gaps++;continue;}
+    batch.push({row,part});payload=next;if(batch.length===4)break;
+   }
+   if(!batch.length||epoch!==generation)return;
+   let wire=new TextEncoder().encode(payload),contentType='application/json';
+   if(typeof CompressionStream==='function'){
+    try{const compressed=new Uint8Array(await new Response(new Blob([wire]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+     if(compressed.length<wire.length){wire=compressed;contentType='application/gzip';}
+    }catch{/* Plain JSON remains bounded and valid on older browsers. */}
+   }
+   if(epoch!==generation||stopped)return;
+   traffic.requests++;traffic.body_bytes+=wire.byteLength;traffic.uncompressed_bytes+=bytes(payload);
+   const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:wire,signal:activeController.signal});
+   if(epoch!==generation)return;
+   if(!r.ok){
+    const problem=await r.json().catch(()=>({}));
+    const retryHeader=r.headers.get('Retry-After'),numericDelay=Number(retryHeader);
+    const delay=Number.isFinite(numericDelay)?numericDelay:(Date.parse(retryHeader)-now())/1000;
+    if(r.status===401){identity=null;save('observatory-identity',null);}
+    // A batch rejection is not proof that individual queued events are invalid.
+    retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));
+    if(['daily_read_limit','daily_write_limit'].includes(problem.error)){retryAt=Math.max(retryAt,Math.min(now()+86400000,Number(problem.retry_at)||0));save('observatory-retry-at',retryAt);}
+    throw Error('Upload '+r.status);
+   }
+   const ack=await r.json();if(!Array.isArray(ack.parts))throw Error('Missing acknowledgement');
+   const saved=[],rejected=[];
+   for(const {row} of batch){
+    const matches=ack.parts.filter(a=>a.id===row.id);if(matches.length!==1)throw Error('Missing or duplicate acknowledgement');
+    const result=matches[0];
+    if(result.status===200){saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
+    else if([400,413,422].includes(result.status))rejected.push(row.id);
+    else throw Error('Unconfirmed part');
+   }
+   if(epoch!==generation)return;
+   await change(saved,rejected,()=>epoch===generation&&!stopped);
+   if(epoch!==generation)return;
+   gaps+=rejected.length;save('observatory-gaps',gaps);
+   failures=0;retryAt=0;save('observatory-retry-at',0);status=rejected.length?'An upload was rejected':'Sent';
+
+  }catch(_){status=Number(read('observatory-retry-at',0))>now()?`Uploads paused until ${new Date(retryAt).toLocaleString()}. Daily upload-service limit reached.`:'Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
+  finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped)setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
+ }
+ async function setConsent(value){
+  generation++;controller?.abort();consent=value===true;save('observatory-consent',consent);
+  if(!consent){await chain;try{await clearOutbox();}catch{}save('observatory-session',null);}
+  else {enqueue([localEvent('consent',{version:1})]);flush();}
+ }
+ async function deleteData(){
+  stopped=true;await setConsent(false);
+  if(!identity){status='Local data deleted';stopped=false;return;}
+  try{
+   const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+identity.token,'X-Installation':identity.id}});
+   if(!r.ok)throw Error('Delete failed');identity=null;save('observatory-identity',null);status='Collected data deleted';
+  }catch{status='Online deletion pending; please try again';}
+  finally{stopped=false;}
+ }
+ function loading(phase,total){
+  if(!['awaiting_download','download_deferred','downloading','game_started','download_failed'].includes(phase))return;
+  loadingContext={phase,total_bytes:Number.isSafeInteger(total)&&total>=0?total:0};
+  if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,loading:loadingContext,at:now()});
+  // An explicit decision to wait is a session event, never a failure report.
+  if(phase==='download_deferred')enqueue([localEvent('leave',{reason:'download_deferred',loading:loadingContext})]);
+ }
+ function failure(kind,message,manual=false){
+  if(consent!==true&&!manual)return;
+  const text=serializeError(message), signature=kind+':'+text;
+  const count=(seenFailures.get(signature)||0)+1;
+  if(seenFailures.size>=32&&!seenFailures.has(signature))return;
+  seenFailures.set(signature,count);if(count!==1&&count%100!==0)return;
+  let diagnostic={};try{diagnostic=JSON.parse(window.dreamDiagnostics?.report()||'{}');}catch{}
+  // Only an allowlisted bounded projection is transmitted, never arbitrary local diagnostics.
+  const current=(kind==='unclean_session'?diagnostic.previous:diagnostic.current)||{};
+  const data={kind,message:text,count,device:{width:innerWidth,height:innerHeight,userAgent:String(navigator.userAgent||'').slice(0,300)},previous_session_id:kind==='unclean_session'?previous?.id:undefined,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,loading:kind==='unclean_session'?previous?.loading:loadingContext,engine:current.engine||{},events:(current.events||[]).slice(-20),description:manual?text:''};
+  let cleaned=JSON.parse(JSON.stringify(data).replace(/https?:\/\/[^\s"\\]+/g,'[url]'));
+  if(bytes(JSON.stringify(cleaned))>MAX_REPORT)cleaned={kind,message:text,count,snapshot_id:lastSnapshot,truncated:true};
+  // A browser may omit pagehide on close, reload, suspension or loading abort.
+  // Retain context as a lifecycle observation, never promote it to an error.
+  if(kind==='unclean_session')cleaned.reason='unobserved_session_end';
+  enqueue([localEvent(kind==='unclean_session'?'leave':'failure',cleaned)],manual).then(flush);
+ }
+ function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ async function exportLocal(){
+  await chain;const rows=await all(), groups=new Map(),events=[];
+  for(const row of rows){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
+  for(const parts of groups.values()){parts.sort((a,b)=>a.index-b.index);if(parts.length===parts[0].count)try{events.push(JSON.parse(parts.map(p=>p.data).join('')));}catch{}}
+  download({schema:1,events,gaps,scope:'bounded_local_history'},'dreamcore-playtest.json');
+ }
+ function open(){
+  document.getElementById('observatory-panel')?.remove();
+  const first=consent===null,previousFocus=document.activeElement;
+  const panel=document.createElement('dialog');panel.id='observatory-panel';panel.lang='en';
+  panel.setAttribute('aria-labelledby','observatory-title');panel.setAttribute('aria-describedby','observatory-intro');
+  const css=document.createElement('style');css.textContent=`
+   #observatory-panel{box-sizing:border-box;width:min(540px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:28px;border:1px solid #74638e;border-radius:22px;background:#201d32;color:#f4efff;font:16px/1.55 system-ui;box-shadow:0 24px 90px #0008;color-scheme:dark}
+   #observatory-panel::backdrop{background:#100f20c9}
+   #observatory-panel *{box-sizing:border-box}#observatory-panel h2{font-size:26px;line-height:1.2;margin:8px 0 16px}#observatory-panel p{margin:12px 0;color:#d3cadd}#observatory-panel .eyebrow{color:#bea8e5;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+   #observatory-panel .choices{display:grid;gap:10px;margin-top:22px}#observatory-panel button{font:inherit;cursor:pointer;min-height:48px;border:1px solid #9380af;border-radius:12px;padding:11px 16px;background:#39304f;color:#fff;text-align:center}#observatory-panel button:hover{background:#514267}#observatory-panel button:focus-visible,#observatory-panel summary:focus-visible,#observatory-panel textarea:focus-visible{outline:3px solid #dec4ff;outline-offset:3px}#observatory-panel button:disabled{opacity:.6;cursor:wait}
+   #observatory-panel details{margin-top:16px;border-top:1px solid #50445e;padding-top:14px}#observatory-panel summary{cursor:pointer;color:#dcc9f2}#observatory-panel ul{padding-left:22px;color:#d3cadd}#observatory-panel .small{font-size:13px;color:#b9afc8}#observatory-panel textarea{display:block;width:100%;min-height:100px;margin:12px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:12px;color:#fff;font:inherit}#observatory-panel .tools{display:grid;gap:10px;margin-top:14px}
+   @media(max-width:420px){#observatory-panel{padding:22px}#observatory-panel h2{font-size:24px}}
+  `;panel.append(css);
+  const add=(tag,text,parent=panel)=>{const n=document.createElement(tag);if(text)n.textContent=text;parent.append(n);return n;};
+  const close=()=>{panel.close();panel.remove();if(previousFocus?.isConnected)previousFocus.focus();};
+  const button=(text,fn,parent)=>{const b=add('button',text,parent);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch{notice.textContent='Something went wrong. Please try again.';}finally{b.disabled=false;}};return b;};
+  add('div','Dreamcore · Playtest').className='eyebrow';
+  add('h2',first?'Help Dreamcore grow?':'Playtest data & feedback').id='observatory-title';
+  add('p',first?'Share your runs and error reports with the developer to help improve builds and fix bugs. Every little bit helps!':'Choose whether to automatically share your runs and error reports with the developer.').id='observatory-intro';
+  add('p','Sharing is optional and never affects gameplay. Change your choice anytime in Settings → Playtest & feedback.').className='small';
+  const details=add('details');add('summary','What gets shared?',details);
+  const list=add('ul',null,details);
+  for(const text of ['Run progress, choices, skills, equipment and results.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.'])add('li',text,list);
+  add('p','Data is stored privately on Cloudflare for 90 days. Runs marked as references are kept longer.',details);
+  add('p','Turning sharing off stops collection and clears pending uploads. You can also delete previously shared data here.',details);
+  const notice=add('p');notice.className='small';notice.setAttribute('role','status');
+  if(!endpoint)notice.textContent='Sharing is not available in this version yet.';
+  const choices=add('div');choices.className='choices';
+  if(first){
+   button('Yes, share playtest data',async()=>{await setConsent(true);close();},choices).disabled=!endpoint;
+   button('Play without sharing',async()=>{await setConsent(false);close();},choices);
+  }else{
+   add('p',consent?'Automatic sharing is on.':'Automatic sharing is off.');
+   button(consent?'Turn sharing off':'Turn sharing on',async()=>{await setConsent(!consent);open();},choices).disabled=!endpoint&&!consent;
+   button('Back to the game',close,choices);
+   const tools=add('details');add('summary','Manage saved data',tools);
+   add('p',`${queueCount} upload parts pending · ${status}${gaps?' · Some records may be missing':''}`,tools).className='small';
+   const actions=add('div',null,tools);actions.className='tools';
+   button('Download a local copy',exportLocal,actions);
+   button('Delete my collected data',async()=>{if(!window.confirm('Delete your collected playtest data and turn sharing off?'))return;await deleteData();open();document.querySelector('#observatory-panel [role="status"]').textContent=status;},actions);
+   const report=add('details');add('summary','Report a problem',report);
+   add('p','This sends your description and technical context once, even if automatic sharing is off.',report).className='small';
+   const input=add('textarea',null,report);input.placeholder='What happened? Please leave out personal information.';input.setAttribute('aria-label','Problem description');input.maxLength=2000;
+   button('Send this report',()=>{if(!input.value.trim()){notice.textContent='Please briefly describe what happened.';input.focus();return;}failure('manual',input.value,true);notice.textContent='Thank you! Your report will be sent when a connection is available.';input.value='';},report).disabled=!endpoint;
   }
-}
+  panel.addEventListener('cancel',e=>{e.preventDefault();if(first)setConsent(false).then(close);else close();});
+  document.body.append(panel);panel.showModal();
+ }
+
+ window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
+ if(consent===true||identity)change().catch(()=>{status='Local storage unavailable; you can keep playing';});
+ addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);if(e.key==='observatory-retry-at')retryAt=Math.max(retryAt,Number(read('observatory-retry-at',0))||0);});
+ addEventListener('online',()=>{retryAt=Math.max(0,Number(read('observatory-retry-at',0))||0);flush();});
+ addEventListener('error',e=>failure('javascript',e.error||e.message));
+ addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
+ document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);
+ document.addEventListener('webglcontextrestored',()=>enqueue([localEvent('context_restored',{})]),true);
+ addEventListener('pagehide',e=>{if(consent)save('observatory-session',{id:session,closed:true,persisted:!!e.persisted,context:lastContext,loading:loadingContext,at:now()});});
+ addEventListener('pageshow',()=>{if(consent)save('observatory-session',{id:session,closed:false,context:lastContext,loading:loadingContext,at:now()});});
+ addEventListener('DOMContentLoaded',()=>{
+  if(consent===null)open();
+ });
+ if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted,loading:previous.loading});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}
+ if(consent===true&&previous&&!previous.closed){lastContext=previous.context||{};lastSnapshot=previous.snapshot_id||'';lastConfirmedSnapshot=previous.confirmed_snapshot_id||'';failure('unclean_session','Vorherige Sitzung endete ohne Abschluss; Ursache unbekannt');}
+ setInterval(flush,30000);
+})();
+
+

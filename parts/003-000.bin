@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "build": "20261106T133633251631Z",
+      "title": "Download prompt and rendering fixes",
+      "summary": "The loading screen now asks before downloading the game and shows its size and progress in MB. Small effect and reward polygons also render more reliably.",
+      "changes": [
+        "Added a download confirmation with the game-file size, Download & play and Not now. The large engine and game files start downloading only after confirmation; loading progress shows loaded and total MB.",
+        "Postponing the download or closing during loading remains a session diagnostic rather than a bug report. Genuine download, startup, JavaScript and engine errors remain reportable.",
+        "Fixed polygon triangulation errors in shrinking combat fragments and shared ticket/reward surfaces while preserving their visible shapes."
+      ]
+    },
+    {
       "build": "20261105T140652191084Z",
       "title": "Playtest upload improvements",
       "summary": "Playtest uploads now respect service retry times and keep daily-limit pauses after reloading. Recording and uploads read less local history.",
