@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261106T144243658746Z",
+      "title": "Solo runs, Blacksmith and combat performance",
+      "summary": "Normal runs are now solo, with a Blacksmith visit at the start of Dungeon 4. This update also changes crafting access, reduces repeated combat work and refreshes menu and dungeon visuals.",
+      "changes": [
+        "Reduced repeated combat work with shared actor lookups, budgeted path searches and cached runtime stats.",
+        "Removed mercenary recruitment from normal runs. The Blacksmith at the start of Dungeon 4 lets you choose one equipped item, craft it with your materials, then finish or skip the visit.",
+        "Craft unresolved drops before equipping them. Accepted and merchant gear stays sealed outside the Blacksmith session; replacement comparisons no longer reveal randomized salvage materials.",
+        "Character, damage and settings popups now share glass panels, compact value tables and sizing based on their contents. Removed the duplicate portrait from the settings popup.",
+        "Added themed entrances and open/closed exits for the poolrooms, suburb, mall and windmill dungeons."
+      ]
+    },
+    {
       "build": "20261106T133633251631Z",
       "title": "Download prompt and rendering fixes",
       "summary": "The loading screen now asks before downloading the game and shows its size and progress in MB. Small effect and reward polygons also render more reliably.",
