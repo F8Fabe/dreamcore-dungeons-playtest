@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "build": "20261109T234912424512Z",
+      "title": "Hero unlocks and Champion Trial results",
+      "summary": "Hero unlocks and remaining pulls survive restarting after an incompatible saved run or trial. This build also includes the Champion Trial results fix.",
+      "changes": [
+        "Preserved unlocked heroines and remaining pulls when restarting after an incompatible saved run or trial. The original save stays backed up.",
+        "Fixed recursive results navigation when a timed Champion Trial ends."
+      ]
+    },
+    {
       "build": "20261109T230844938167Z",
       "title": "Cached startup, combat readability and playtest privacy",
       "summary": "The start screen now offers Play when the current build is cached. This update also improves combat readability, simplifies peaceful encounters and updates voluntary playtest sharing.",

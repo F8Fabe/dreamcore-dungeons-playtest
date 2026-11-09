@@ -1,16 +1,20 @@
 {
   "schema": 1,
-  "build": "20261109T230844938167Z",
+  "build": "20261109T234912424512Z",
   "fixes": [
     {
       "bug_id": 1,
       "fix_id": "8be67f5612819169109321b7fc489e8c46e3740f04682c538badd8756f4e3572"
+    },
+    {
+      "bug_id": 36,
+      "fix_id": "2316d47b4835621805e9106ed3a18523473a9e82ad51ac7aaf1f05591d1206ce"
     }
   ],
   "artifacts": {
-    "build-manifest.json": "f488d2fd0ae796fdea8670b687474904bb46775e52af6197cd7039b792833351",
-    "changelog.html": "d39ee8c9f0a9150d73bc8d22b751e430cf77fe63f33cf5f2efc2661303effbeb",
-    "changelog.json": "df17212459027adde5f2b1786093b5bc6b4642ed6d3dd8c485bd121556b8afae",
+    "build-manifest.json": "c9cf4984f92f6e026ce6051630625eae893e4f686e1d3e47f15ea24007b7afbd",
+    "changelog.html": "ce19d0409d6c67cf8aabcf10cdf0d170557131473be64f9490fef4895804b91a",
+    "changelog.json": "1050b12c05f4f1cf39fe7850c2f8367b1b775e637ecdbe130cbcfcdabff3ad39",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
@@ -21,10 +25,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "4251776156a38707b37b63d2959576acafff23e40d13f27498fb6920b2befbae",
+    "index.html": "dbec8ff95dc2a0b40029f7fb6e8d5d5b6c20d3e7a4fa95f1eef24cf518b6bb88",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "5a691f79bf9a997b1e6ed758b51f390d3abb4cc1771cceb95618b165241413f9",
+    "index.pck": "f79dfacf8f05612efc0dbdd8729b1d1987e466546d54daca96f2b16f04ac533a",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -35,14 +39,11 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Cached startup, combat readability and playtest privacy",
-    "summary": "The start screen now offers Play when the current build is cached. This update also improves combat readability, simplifies peaceful encounters and updates voluntary playtest sharing.",
+    "title": "Hero unlocks and Champion Trial results",
+    "summary": "Hero unlocks and remaining pulls survive restarting after an incompatible saved run or trial. This build also includes the Champion Trial results fix.",
     "changes": [
-      "Play appears when both game files are cached; the download prompt estimates only the files still needed.",
-      "Added compact skill details, hold-to-inspect controls and clearer combat numbers on phones. Level-up effects now appear on the reward cards.",
-      "Peaceful encounters use shorter approach and exit paths; active skills are disabled outside combat. Navigation skips detailed searches between disconnected areas.",
-      "Fixed a crash when opening the result after a timed Champion Trial.",
-      "Playtest sharing requires a fresh opt-in with 18+ confirmation. Withdrawing consent stops uploads and requests deletion of shared data, with retry when back online."
+      "Preserved unlocked heroines and remaining pulls when restarting after an incompatible saved run or trial. The original save stays backed up.",
+      "Fixed recursive results navigation when a timed Champion Trial ends."
     ]
   }
 }

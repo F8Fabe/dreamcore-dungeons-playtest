@@ -11,23 +11,23 @@
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "f488d2fd0ae796fdea8670b687474904bb46775e52af6197cd7039b792833351"
+    "sha256": "c9cf4984f92f6e026ce6051630625eae893e4f686e1d3e47f15ea24007b7afbd"
   },
   {
     "path": "changelog.html",
-    "bytes": 8960,
+    "bytes": 9608,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "d39ee8c9f0a9150d73bc8d22b751e430cf77fe63f33cf5f2efc2661303effbeb"
+    "sha256": "ce19d0409d6c67cf8aabcf10cdf0d170557131473be64f9490fef4895804b91a"
   },
   {
     "path": "changelog.json",
-    "bytes": 6637,
+    "bytes": 7187,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "df17212459027adde5f2b1786093b5bc6b4642ed6d3dd8c485bd121556b8afae"
+    "sha256": "1050b12c05f4f1cf39fe7850c2f8367b1b775e637ecdbe130cbcfcdabff3ad39"
   },
   {
     "path": "diagnostics.js",
@@ -115,7 +115,7 @@
     "parts": [
       "014-000.bin"
     ],
-    "sha256": "4251776156a38707b37b63d2959576acafff23e40d13f27498fb6920b2befbae"
+    "sha256": "dbec8ff95dc2a0b40029f7fb6e8d5d5b6c20d3e7a4fa95f1eef24cf518b6bb88"
   },
   {
     "path": "index.icon.png",
@@ -135,7 +135,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 87662420,
+    "bytes": 87662772,
     "parts": [
       "017-000.bin",
       "017-001.bin",
@@ -143,7 +143,7 @@
       "017-003.bin",
       "017-004.bin"
     ],
-    "sha256": "5a691f79bf9a997b1e6ed758b51f390d3abb4cc1771cceb95618b165241413f9"
+    "sha256": "f79dfacf8f05612efc0dbdd8729b1d1987e466546d54daca96f2b16f04ac533a"
   },
   {
     "path": "index.png",
@@ -252,11 +252,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 3569,
+    "bytes": 3178,
     "parts": [
       "031-000.bin"
     ],
-    "sha256": "8d74639c2ec0c2e33529ab921006d55445c37b16a36e2608021b294e496c76f7"
+    "sha256": "dbd07d008c46c739e3c6044126fc0b78665e51ca619a5042264acd10c9066c17"
   },
   {
     "path": "sleeping-trio-v1.webp",

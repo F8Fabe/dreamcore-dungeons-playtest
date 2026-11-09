@@ -1,5 +1,5 @@
 {
-  "build": "20261109T230844938167Z",
+  "build": "20261109T234912424512Z",
   "files": {
     "addons/runtime_sources/plugin.cfg": "58575f1e8fec8ca6b502acf626a5c9d7e70e770395c1c55da345ff4badee8f82",
     "addons/runtime_sources/plugin.gd": "b6a2ecc88caa076ba1f44698840c977543662548bfa9f35a81cb87e91566d83e",
@@ -2292,7 +2292,7 @@
     "scripts/pastel_ui.gd.uid": "edc64af7182d4462a2fe8eb97faca011ef0cc303fd6d9f96be26e547415a56b5",
     "scripts/peaceful_popup.gd": "a05b3e5aae89c4454c39374f3e92b43eb67d4f676af6b905f8fea3dd55071998",
     "scripts/peaceful_popup.gd.uid": "e4de6d02d4eb6cb77c2cef947ac915da1847d28d08a2e4d9922d65a86696d6a6",
-    "scripts/persistence.gd": "7f9b5c6c82a30cc8c5a8271b4197113e02365a16eab0436b71d1853207ffb55c",
+    "scripts/persistence.gd": "0bd2cc764c2b081c60bdad31793218920ffa607e59c90891b17a84d61a99ecc5",
     "scripts/persistence.gd.uid": "e7c92c219a07d7734e2cb29e5aefb468d4fc286a36248b0d6dc73c633c12fcd6",
     "scripts/player_ui.gd": "4aff87801eaf2ea8b99220f9e13846ff0c353bf34d4f288abccd6fc3e25258a6",
     "scripts/player_ui.gd.uid": "39154ab571e8479d215b74e47d2257631412e10f0d7a44c735448ec989bebc46",
