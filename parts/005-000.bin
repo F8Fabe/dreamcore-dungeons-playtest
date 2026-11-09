@@ -2,14 +2,35 @@
 (() => {
  'use strict';
  const mb=value=>(value/1000000).toFixed(1);
+ const cacheName='dreamcore-game-files-v1';
  let files=new Map();
+ async function openGameCache(){
+  try{return await window.caches?.open(cacheName);}
+  catch{return null;}
+ }
+ async function readLocal(entry,signal){
+  try{
+   const saved=await entry.cache?.match(entry.key);
+   if(saved?.url===entry.url.href&&saved.status===200&&saved.body)return saved;
+  }catch{/* Storage access can be unavailable even in a secure context. */}
+  return fetch(entry.url,{mode:'same-origin',cache:'only-if-cached',redirect:'error',signal});
+ }
+ async function download(entry){
+  const response=await fetch(entry.url);
+  if(entry.cache&&response.url===entry.url.href&&response.status===200&&response.body){
+   // Copy to site storage alongside the engine read. Large packages can exceed
+   // the browser HTTP cache's per-file limit even when space is available.
+   entry.cache.put(entry.key,response.clone()).catch(()=>{});
+  }
+  return response;
+ }
  window.dreamDownloadGate={
   fetchFile(file){
    const entry=files.get(file);
    if(!entry)return fetch(file);
    if(entry.response){const response=entry.response;entry.response=null;return Promise.resolve(response);}
    // A verified cache hit must never silently fall back to downloading on retry.
-   return fetch(entry.url,entry.local?{mode:'same-origin',cache:'only-if-cached'}:undefined);
+   return entry.local?readLocal(entry):download(entry);
   },
   prepare(config){
   const total=Object.values(config.fileSizes||{}).reduce((sum,size)=>sum+(Number.isFinite(size)&&size>0?size:0),0);
@@ -23,8 +44,9 @@
   const build=document.documentElement.dataset.build;
   files=new Map(Object.entries(config.fileSizes||{}).map(([file,bytes])=>{
    const url=new URL(file,location.href);
+   const key=url.href;
    url.searchParams.set('build',build);
-   return [file,{url,bytes,response:null,local:false}];
+   return [file,{key,url,bytes,cache:null,response:null,local:false}];
   }));
   let started=false, leaving=false, resolveStart;
   const ready=new Promise(resolve=>{resolveStart=resolve;});
@@ -35,11 +57,13 @@
   let local=false;
   caption.textContent='Checking for saved game files…';
   state('awaiting_download');
+  const gameCache=openGameCache();
   Promise.all([...files.values()].map(async entry=>{
+   entry.cache=await gameCache;
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),2000);
    try{
-    const response=await fetch(entry.url,{mode:'same-origin',cache:'only-if-cached',redirect:'error',signal:controller.signal});
+    const response=await readLocal(entry,controller.signal);
     if(response.status===200&&response.body){entry.response=response;entry.local=true;}
    }catch{/* A missing or unavailable cache still requires confirmation. */}
    finally{clearTimeout(timeout);}

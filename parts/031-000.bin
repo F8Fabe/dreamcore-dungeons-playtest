@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "build": "20261109T224948464675Z",
+  "build": "20261109T230844938167Z",
   "fixes": [
     {
       "bug_id": 1,
@@ -8,11 +8,11 @@
     }
   ],
   "artifacts": {
-    "build-manifest.json": "1811e1805675b04d0623d1ae79b5b357ef6d316240c773979d5540ba8c4934c7",
-    "changelog.html": "f38ecdebd16ecc587853b51b55a2f6578ff8434297813afe8fca37b3cbadfbaa",
-    "changelog.json": "ae3e637f7c17123e61eaf994116c56e21c4718c82b9d68fca310432160250e57",
+    "build-manifest.json": "f488d2fd0ae796fdea8670b687474904bb46775e52af6197cd7039b792833351",
+    "changelog.html": "d39ee8c9f0a9150d73bc8d22b751e430cf77fe63f33cf5f2efc2661303effbeb",
+    "changelog.json": "df17212459027adde5f2b1786093b5bc6b4642ed6d3dd8c485bd121556b8afae",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
-    "download_gate.js": "5b29bf07b8a5bb08a87938dd27e1c727c266e5af6413efda62693e20a7c0a521",
+    "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
     "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
@@ -21,10 +21,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "89ca9905a7ea648a2c88a4c7cffbf92f99a1798e16989e53e8498bee734208af",
+    "index.html": "4251776156a38707b37b63d2959576acafff23e40d13f27498fb6920b2befbae",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "59e82f743a24c0a35fed4ce4f107fd86086e033687fbc14c7ff179ea171ccb6a",
+    "index.pck": "5a691f79bf9a997b1e6ed758b51f390d3abb4cc1771cceb95618b165241413f9",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",

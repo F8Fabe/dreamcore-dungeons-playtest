@@ -11,7 +11,7 @@
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "1811e1805675b04d0623d1ae79b5b357ef6d316240c773979d5540ba8c4934c7"
+    "sha256": "f488d2fd0ae796fdea8670b687474904bb46775e52af6197cd7039b792833351"
   },
   {
     "path": "changelog.html",
@@ -19,7 +19,7 @@
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "f38ecdebd16ecc587853b51b55a2f6578ff8434297813afe8fca37b3cbadfbaa"
+    "sha256": "d39ee8c9f0a9150d73bc8d22b751e430cf77fe63f33cf5f2efc2661303effbeb"
   },
   {
     "path": "changelog.json",
@@ -27,7 +27,7 @@
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "ae3e637f7c17123e61eaf994116c56e21c4718c82b9d68fca310432160250e57"
+    "sha256": "df17212459027adde5f2b1786093b5bc6b4642ed6d3dd8c485bd121556b8afae"
   },
   {
     "path": "diagnostics.js",
@@ -39,11 +39,11 @@
   },
   {
     "path": "download_gate.js",
-    "bytes": 4146,
+    "bytes": 5059,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "5b29bf07b8a5bb08a87938dd27e1c727c266e5af6413efda62693e20a7c0a521"
+    "sha256": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025"
   },
   {
     "path": "dreamcore-180.png",
@@ -115,7 +115,7 @@
     "parts": [
       "014-000.bin"
     ],
-    "sha256": "89ca9905a7ea648a2c88a4c7cffbf92f99a1798e16989e53e8498bee734208af"
+    "sha256": "4251776156a38707b37b63d2959576acafff23e40d13f27498fb6920b2befbae"
   },
   {
     "path": "index.icon.png",
@@ -143,7 +143,7 @@
       "017-003.bin",
       "017-004.bin"
     ],
-    "sha256": "59e82f743a24c0a35fed4ce4f107fd86086e033687fbc14c7ff179ea171ccb6a"
+    "sha256": "5a691f79bf9a997b1e6ed758b51f390d3abb4cc1771cceb95618b165241413f9"
   },
   {
     "path": "index.png",
@@ -256,7 +256,7 @@
     "parts": [
       "031-000.bin"
     ],
-    "sha256": "a9c88c3a1d21309006ac2632727c3a8a25268da95b0402449e1f2b147f20f1ff"
+    "sha256": "8d74639c2ec0c2e33529ab921006d55445c37b16a36e2608021b294e496c76f7"
   },
   {
     "path": "sleeping-trio-v1.webp",

@@ -1,7 +1,7 @@
 {
   "releases": [
     {
-      "build": "20261109T224948464675Z",
+      "build": "20261109T230844938167Z",
       "title": "Cached startup, combat readability and playtest privacy",
       "summary": "The start screen now offers Play when the current build is cached. This update also improves combat readability, simplifies peaceful encounters and updates voluntary playtest sharing.",
       "changes": [
