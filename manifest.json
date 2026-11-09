@@ -7,43 +7,43 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 300616,
+    "bytes": 301154,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "9b0ecaa8f178b885c2f36f283a075e4a87eb27f3b32ab42d52ee2aaa9224eaa2"
+    "sha256": "1811e1805675b04d0623d1ae79b5b357ef6d316240c773979d5540ba8c4934c7"
   },
   {
     "path": "changelog.html",
-    "bytes": 7807,
+    "bytes": 8960,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "1412b0d167002c0db80fb8411b0e8bd890cc85c78d76c7aa854224b0600f70e9"
+    "sha256": "f38ecdebd16ecc587853b51b55a2f6578ff8434297813afe8fca37b3cbadfbaa"
   },
   {
     "path": "changelog.json",
-    "bytes": 5570,
+    "bytes": 6637,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "af3d62d4d37904ee90e172e832afa00bd54edb03d623a92b78d8db7d39208fc9"
+    "sha256": "ae3e637f7c17123e61eaf994116c56e21c4718c82b9d68fca310432160250e57"
   },
   {
     "path": "diagnostics.js",
-    "bytes": 20419,
+    "bytes": 21176,
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da"
+    "sha256": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719"
   },
   {
     "path": "download_gate.js",
-    "bytes": 2330,
+    "bytes": 4146,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "36c2ec4f52d2462b94c95e3a35531c2d721685655384bb921509d7b5262d4ddf"
+    "sha256": "5b29bf07b8a5bb08a87938dd27e1c727c266e5af6413efda62693e20a7c0a521"
   },
   {
     "path": "dreamcore-180.png",
@@ -111,11 +111,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 11420,
+    "bytes": 11606,
     "parts": [
       "014-000.bin"
     ],
-    "sha256": "32d004f0c0c0531ff7d4aa054e3f96e33f1126a731379da13ec8b70b087f2a21"
+    "sha256": "89ca9905a7ea648a2c88a4c7cffbf92f99a1798e16989e53e8498bee734208af"
   },
   {
     "path": "index.icon.png",
@@ -127,15 +127,15 @@
   },
   {
     "path": "index.js",
-    "bytes": 284882,
+    "bytes": 284931,
     "parts": [
       "016-000.bin"
     ],
-    "sha256": "b8f41230fabd0f62233277757858ddbf564ed202db3e320152787a8a94af5d8a"
+    "sha256": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c"
   },
   {
     "path": "index.pck",
-    "bytes": 87660276,
+    "bytes": 87662420,
     "parts": [
       "017-000.bin",
       "017-001.bin",
@@ -143,7 +143,7 @@
       "017-003.bin",
       "017-004.bin"
     ],
-    "sha256": "aa91ef34f30da32a2c0fcd653efe38b4ee72452282cee99ca453bfc66e4361b6"
+    "sha256": "59e82f743a24c0a35fed4ce4f107fd86086e033687fbc14c7ff179ea171ccb6a"
   },
   {
     "path": "index.png",
@@ -220,33 +220,49 @@
   },
   {
     "path": "observatory-config.js",
-    "bytes": 184,
+    "bytes": 291,
     "parts": [
       "027-000.bin"
     ],
-    "sha256": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0"
+    "sha256": "4ddc0f6490ead519ec12edac31cd4647b97389f9f54a827c9fb3011ba46654e3"
   },
   {
     "path": "observatory.js",
-    "bytes": 24562,
+    "bytes": 34504,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "e136851c3b98626bec7e008ed83abf970d63b354fafe3e7a9abd0a550e4e10e9"
+    "sha256": "cfcad4da524ad20afd5462d63c12594e0d0636a568af5cac5bd227741559dd3e"
   },
   {
-    "path": "release.json",
-    "bytes": 3489,
+    "path": "playtest_privacy.js",
+    "bytes": 938,
     "parts": [
       "029-000.bin"
     ],
-    "sha256": "a2c8443ad4855d0271ae14748e32b72cca089beb0e0cef7741fc688140a9bd57"
+    "sha256": "850368c84ddd1ffe05b38ee1775353c81c34e4ea50cc349ea1dad37052b18b1a"
+  },
+  {
+    "path": "privacy.html",
+    "bytes": 6475,
+    "parts": [
+      "030-000.bin"
+    ],
+    "sha256": "3ff05f87162348d0f663ec72f53d29daebe6a786f1d593eb83f59bfacf9ea6f8"
+  },
+  {
+    "path": "release.json",
+    "bytes": 3569,
+    "parts": [
+      "031-000.bin"
+    ],
+    "sha256": "a9c88c3a1d21309006ac2632727c3a8a25268da95b0402449e1f2b147f20f1ff"
   },
   {
     "path": "sleeping-trio-v1.webp",
     "bytes": 113090,
     "parts": [
-      "030-000.bin"
+      "032-000.bin"
     ],
     "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }

@@ -1,46 +1,14 @@
-{
-  "schema": 1,
-  "build": "20261106T144243658746Z",
-  "fixes": [
-    {
-      "bug_id": 1,
-      "fix_id": "8be67f5612819169109321b7fc489e8c46e3740f04682c538badd8756f4e3572"
-    }
-  ],
-  "artifacts": {
-    "build-manifest.json": "9b0ecaa8f178b885c2f36f283a075e4a87eb27f3b32ab42d52ee2aaa9224eaa2",
-    "changelog.html": "1412b0d167002c0db80fb8411b0e8bd890cc85c78d76c7aa854224b0600f70e9",
-    "changelog.json": "af3d62d4d37904ee90e172e832afa00bd54edb03d623a92b78d8db7d39208fc9",
-    "diagnostics.js": "83828007d0f9aaab62038d75bde0aa7c3d78087e0e396c7d42adb63ed10fa6da",
-    "download_gate.js": "36c2ec4f52d2462b94c95e3a35531c2d721685655384bb921509d7b5262d4ddf",
-    "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
-    "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "dreamcore-64.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "dreamcore.webmanifest": "8ed15ba08a539dc197f3b682e27bd251b4da4ff98ce2e4e7ecb944562bad360c",
-    "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
-    "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "32d004f0c0c0531ff7d4aa054e3f96e33f1126a731379da13ec8b70b087f2a21",
-    "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "index.js": "b8f41230fabd0f62233277757858ddbf564ed202db3e320152787a8a94af5d8a",
-    "index.pck": "aa91ef34f30da32a2c0fcd653efe38b4ee72452282cee99ca453bfc66e4361b6",
-    "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
-    "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
-    "observatory-config.js": "f62dabda18908c2e2894e1f0febe36b1b30fc28aecd6da56cb2e4d7ae3bc8be0",
-    "observatory.js": "e136851c3b98626bec7e008ed83abf970d63b354fafe3e7a9abd0a550e4e10e9",
-    "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
-  },
-  "notes": {
-    "title": "Solo runs, Blacksmith and combat performance",
-    "summary": "Normal runs are now solo, with a Blacksmith visit at the start of Dungeon 4. This update also changes crafting access, reduces repeated combat work and refreshes menu and dungeon visuals.",
-    "changes": [
-      "Reduced repeated combat work with shared actor lookups, budgeted path searches and cached runtime stats.",
-      "Removed mercenary recruitment from normal runs. The Blacksmith at the start of Dungeon 4 lets you choose one equipped item, craft it with your materials, then finish or skip the visit.",
-      "Craft unresolved drops before equipping them. Accepted and merchant gear stays sealed outside the Blacksmith session; replacement comparisons no longer reveal randomized salvage materials.",
-      "Character, damage and settings popups now share glass panels, compact value tables and sizing based on their contents. Removed the duplicate portrait from the settings popup.",
-      "Added themed entrances and open/closed exits for the poolrooms, suburb, mall and windmill dungeons."
-    ]
-  }
-}
+/* Only the permission choice is read before optional storage is allowed. */
+(() => {
+ const key='observatory-privacy-choice',version='2026-11-09.3';
+ const manualKey='observatory-manual-report-permission';
+ let suspended=false;
+ const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
+ const stored=()=>read(key);
+ const valid=value=>value?.version===version&&typeof value.granted==='boolean'&&Number.isFinite(value.decided_at)&&(!value.granted||value.adult_confirmed===true);
+ const ready=()=>window.dreamObservatoryConfig?.privacyNoticeReady===true;
+ const choice=()=>{const value=stored();return valid(value)?value:null;};
+ const permits=()=>!suspended&&ready()&&choice()?.granted===true;
+ const manual=()=>ready()&&read(manualKey)===version;
+ window.dreamPlaytestPrivacy=Object.freeze({key,version,manualKey,stored,choice,ready,permits,manual,suspend:value=>{suspended=value;}});
+})();

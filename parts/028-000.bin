@@ -2,18 +2,29 @@
 (() => {
  'use strict';
  const cfg=window.dreamObservatoryConfig||{}, endpoint=(cfg.endpoint||'').replace(/\/$/, '');
+ const privacy=window.dreamPlaytestPrivacy;
+ const canShare=()=>!!endpoint&&privacy?.ready()===true;
+ const erasureKey='observatory-erasure-request',registrationLock='dreamcore-observatory-registration';
+ const erasureUnverified='Online deletion could not be verified. Contact the developer via the privacy notice.';
  const BUDGET=20*1024*1024, PART=60000, MAX_REPORT=64*1024;
  const bytes=s=>new TextEncoder().encode(s).length;
  const uuid=()=>crypto.randomUUID();
  const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
  const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
- let consent=read('observatory-consent',null), identity=read('observatory-identity',null);
- let generation=0, controller=null;
- let busy=false, stopped=false, retryAt=Number(read('observatory-retry-at',0))||0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
- let status='Ready', queueCount=0, gaps=read('observatory-gaps',0), lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
+ let consentRecord=privacy?.choice()??null;
+ let consent=canShare()?consentRecord?.granted??null:null;
+ let erasure=read(erasureKey,null),erasureTask=null,erasureSaved=!!erasure,clearingLocal=false;
+ if(erasure){consent=false;privacy?.suspend(true);}
+ let manualPending=canShare()&&privacy.manual();
+ let renewal=!!consentRecord?.cleanup_pending||!consentRecord&&(read('observatory-consent',null)!==null||!!privacy?.stored());
+ if(renewal||erasure)manualPending=false;
+ const mayUseQueue=()=>!erasure&&!renewal&&canShare()&&(consent===true||manualPending);
+ let identity=null,generation=0,controller=null;
+ let busy=false, stopped=false, retryAt=mayUseQueue()?Number(read('observatory-retry-at',0))||0:0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
+ let status=erasure?(erasure.blocked?erasureUnverified:'Online deletion pending. Sharing is off.'):'Ready', queueCount=0, gaps=mayUseQueue()?read('observatory-gaps',0):0, lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
  const session=uuid(), seenFailures=new Map();
  const traffic={requests:0,body_bytes:0,uncompressed_bytes:0};
- const previous=read('observatory-session',null);
+ const previous=consent===true?read('observatory-session',null):null;
  let loadingContext=null;
  const now=()=>Date.now();
  const requestValue=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
@@ -85,17 +96,25 @@
   return requestValue(t.objectStore('outbox').index('delivery').getAll(pendingRange(),4));
  }
  const all=async()=>{await change();const d=await database(),t=d.transaction('outbox','readonly');return requestValue(t.objectStore('outbox').getAll());};
- async function clearOutbox(){await outbox((store,meta)=>{store.clear();meta.put(emptyState());});queueCount=0;}
+ async function clearOutbox(){
+  if(dbPromise)await outbox((store,meta)=>{store.clear();meta.put(emptyState());});
+  else await new Promise((resolve,reject)=>{
+   const r=indexedDB.deleteDatabase('dreamcore-observatory-v1');r.onsuccess=resolve;r.onerror=()=>reject(r.error);
+   r.onblocked=()=>reject(Error('Close other game tabs to clear local playtest data'));
+  });
+  queueCount=0;
+ }
  function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
  function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
  function enqueue(events,oneShot=false){
-  if((consent!==true&&!oneShot)||stopped)return Promise.resolve();
+   if(!mayUseQueue()||(consent!==true&&!oneShot)||stopped)return Promise.resolve();
   const epoch=generation;
   chain=chain.then(async()=>{
-   if(stopped||(!oneShot&&(consent!==true||epoch!==generation)))return;
+    if(stopped||!mayUseQueue()||epoch!==generation||(!oneShot&&consent!==true))return;
    const rows=[];
    for(const raw of events){
-    const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now()};
+     const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now(),
+      privacy:{notice_version:privacy.version,permission:oneShot?'manual_report':'automatic',consented_at:oneShot?raw.data.consented_at:consentRecord.decided_at,adult_confirmed:true}};
     lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
     if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
     const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
@@ -113,13 +132,14 @@
  }
  async function register(){
   const create=async()=>{
+   if(!mayUseQueue()||read(erasureKey,null))throw Error('Sharing is off');
    identity=read('observatory-identity',null);
    if(identity)return identity;
-   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller?.signal});
+   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json','X-Privacy-Notice':privacy.version},body:'{}',signal:controller?.signal});
    if(!r.ok)throw Error('Registration '+r.status);
    const value=await r.json();if(!save('observatory-identity',value))throw Error('Cannot retain upload identity');identity=value;return value;
   };
-  return navigator.locks?.request?navigator.locks.request('dreamcore-observatory-registration',create):create();
+  return navigator.locks?.request?navigator.locks.request(registrationLock,create):create();
  }
  let flushTask=null;
  function flush(){
@@ -127,11 +147,11 @@
   return flushTask;
  }
  async function flushOnce(){
-  if(busy||stopped||!endpoint||now()<retryAt)return;
+   if(busy||stopped||!mayUseQueue()||now()<retryAt)return;
   busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
   try{
-   await chain;const rows=await pending();if(!rows.length)return;
-   const auth=await register();
+    await chain;if(epoch!==generation||!mayUseQueue())return;
+    const rows=await pending();if(!rows.length){clearManualPermission();return;}
    const batch=[];let payload='';
    for(const row of rows){
     if(stopped||(!consent&&!row.oneShot))continue;
@@ -141,15 +161,16 @@
     batch.push({row,part});payload=next;if(batch.length===4)break;
    }
    if(!batch.length||epoch!==generation)return;
+    const auth=await register();
    let wire=new TextEncoder().encode(payload),contentType='application/json';
    if(typeof CompressionStream==='function'){
     try{const compressed=new Uint8Array(await new Response(new Blob([wire]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
      if(compressed.length<wire.length){wire=compressed;contentType='application/gzip';}
     }catch{/* Plain JSON remains bounded and valid on older browsers. */}
    }
-   if(epoch!==generation||stopped)return;
+   if(epoch!==generation||stopped||!mayUseQueue()||read(erasureKey,null))return;
    traffic.requests++;traffic.body_bytes+=wire.byteLength;traffic.uncompressed_bytes+=bytes(payload);
-   const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:wire,signal:activeController.signal});
+   const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id,'X-Privacy-Notice':privacy.version},body:wire,signal:activeController.signal});
    if(epoch!==generation)return;
    if(!r.ok){
     const problem=await r.json().catch(()=>({}));
@@ -162,34 +183,113 @@
     throw Error('Upload '+r.status);
    }
    const ack=await r.json();if(!Array.isArray(ack.parts))throw Error('Missing acknowledgement');
-   const saved=[],rejected=[];
+   const saved=[],rejected=[],delivered=[];
    for(const {row} of batch){
     const matches=ack.parts.filter(a=>a.id===row.id);if(matches.length!==1)throw Error('Missing or duplicate acknowledgement');
     const result=matches[0];
-    if(result.status===200){saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
+    if(result.status===200){if(row.oneShot&&!consent)delivered.push(row.id);else saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
     else if([400,413,422].includes(result.status))rejected.push(row.id);
     else throw Error('Unconfirmed part');
    }
    if(epoch!==generation)return;
-   await change(saved,rejected,()=>epoch===generation&&!stopped);
+   await change(saved,[...rejected,...delivered],()=>epoch===generation&&!stopped);
    if(epoch!==generation)return;
    gaps+=rejected.length;save('observatory-gaps',gaps);
    failures=0;retryAt=0;save('observatory-retry-at',0);status=rejected.length?'An upload was rejected':'Sent';
+   if(!queueCount)clearManualPermission();
 
-  }catch(_){status=Number(read('observatory-retry-at',0))>now()?`Uploads paused until ${new Date(retryAt).toLocaleString()}. Daily upload-service limit reached.`:'Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
-  finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped)setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
+  }catch(_){if(epoch!==generation||!mayUseQueue())return;status=Number(read('observatory-retry-at',0))>now()?`Uploads paused until ${new Date(retryAt).toLocaleString()}. Daily upload-service limit reached.`:'Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
+   finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped&&mayUseQueue())setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
  }
- async function setConsent(value){
-  generation++;controller?.abort();consent=value===true;save('observatory-consent',consent);
-  if(!consent){await chain;try{await clearOutbox();}catch{}save('observatory-session',null);}
-  else {enqueue([localEvent('consent',{version:1})]);flush();}
+ function clearManualPermission(){
+  if(manualPending){manualPending=false;try{localStorage.removeItem(privacy.manualKey);}catch{}}
+ }
+ function showErasureStatus(message){
+  status=message;
+  const notice=document.querySelector('#observatory-panel [role="status"]');if(notice)notice.textContent=message;
+  for(const button of document.querySelectorAll('#observatory-panel [data-sharing-action]'))button.disabled=!!erasure||!canShare();
+ }
+ function queueErasure(){
+  if(erasure)return;
+  const target=read('observatory-identity',null);if(!target?.id||!target?.token)return;
+  erasure={installation:target.id,requested_at:now(),retry_at:0};erasureSaved=save(erasureKey,erasure);
+  showErasureStatus(erasureSaved?'Online deletion pending. Sharing is off.':'Deletion could not be saved for later. Keep this page open to retry.');
+ }
+ function retryErasure(manual=false){
+  if(erasureTask)return erasureTask;
+  if(clearingLocal||!erasure||!endpoint||navigator.onLine===false||now()<(erasure.retry_at||0)||(!manual&&erasure.blocked))return Promise.resolve();
+  const attempt=async()=>{
+   if(erasureSaved){erasure=read(erasureKey,null);if(!erasure)return;}
+   if(!erasure||(!manual&&erasure.blocked)||now()<(erasure.retry_at||0))return;
+   const request=erasure,target=read('observatory-identity',null);
+   if(target?.id!==erasure.installation||!target?.token){
+    erasure.blocked=true;erasureSaved=save(erasureKey,erasure);
+    showErasureStatus(erasureUnverified);return;
+   }
+   const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),15000);
+   try{
+    const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+target.token,'X-Installation':target.id},signal:controller.signal});
+    const result=await r.json().catch(()=>({}));
+    if(erasure!==request)return;
+    if(!r.ok||result.deleted!==true){
+     const header=r.headers.get('Retry-After'),seconds=Number(header);
+     const retry=header&&(Number.isFinite(seconds)?now()+seconds*1000:Date.parse(header));
+     erasure.retry_at=Math.max(now(),Number(retry)||0,Number(result.retry_at)||0);
+     erasure.blocked=[401,403,404].includes(r.status);
+     erasureSaved=save(erasureKey,erasure);
+     showErasureStatus(erasure.blocked?erasureUnverified:'Online deletion pending. It will be retried while the game page is open.');return;
+    }
+    if(read('observatory-identity',null)?.id===target.id)save('observatory-identity',null);
+    identity=null;erasure=null;erasureSaved=false;try{localStorage.removeItem(erasureKey);}catch{}
+    showErasureStatus(renewal?'Online data deleted; local cleanup incomplete. Close other game tabs and retry.':'Collected data deleted');
+   }catch{if(erasure===request)showErasureStatus(erasureSaved?'Online deletion pending. It will be retried when you reconnect.':'Deletion could not be saved for later. Keep this page open to retry.');}
+   finally{clearTimeout(deadline);}
+  };
+  erasureTask=(navigator.locks?.request?navigator.locks.request(registrationLock,attempt):attempt()).finally(()=>{erasureTask=null;});
+  return erasureTask;
+ }
+ async function setConsent(value,{forceClear=false,adultConfirmed=false}={}){
+  if(value&&!canShare())throw Error('Privacy notice is not available');
+  if(value&&adultConfirmed!==true)throw Error('Playtest sharing is for adults only');
+  if(value&&(erasure||read(erasureKey,null)))throw Error('Online deletion is still pending');
+  if(privacy.choice()?.cleanup_pending)renewal=true;
+  const withdrawing=!value&&(forceClear||consent===true||(!consentRecord&&(read('observatory-consent',null)===true||privacy.stored()?.granted===true)));
+  const hadQueue=renewal||mayUseQueue()||!!dbPromise;
+  generation++;controller?.abort();consent=false;privacy.suspend(true);
+  if(read('observatory-consent',null)!==null)save('observatory-consent',false);
+  const record={version:privacy.version,granted:false,decided_at:now()};
+  if((!value||renewal)&&(hadQueue||forceClear))record.cleanup_pending=true;
+  const saved=save(privacy.key,record);consentRecord=record;
+  if(!saved)try{localStorage.removeItem(privacy.key);}catch{}
+  clearManualPermission();
+  if(withdrawing){clearingLocal=true;queueErasure();}
+  await chain;
+  if(!value||renewal){
+   let cleared=window.dreamDiagnostics?.clearPlaytestHistory?.()!==false;
+   lastContext={};lastSnapshot='';lastConfirmedSnapshot='';gaps=0;retryAt=0;
+   for(const key of ['observatory-session','observatory-gaps','observatory-retry-at'])try{localStorage.removeItem(key);}catch{cleared=false;}
+   if(hadQueue||forceClear)try{await clearOutbox();}catch{cleared=false;}
+   if(!cleared){clearingLocal=false;renewal=true;record.cleanup_pending=true;save(privacy.key,record);status='Local cleanup incomplete. Close other game tabs and retry.';if(!forceClear&&erasure)void retryErasure();return false;}
+  }
+  renewal=false;
+  clearingLocal=false;
+  if(record.cleanup_pending){delete record.cleanup_pending;save(privacy.key,record);}
+  if(value){
+   if(!hadQueue)window.dreamDiagnostics?.clearPlaytestHistory?.();
+   record.granted=true;record.adult_confirmed=true;record.decided_at=now();
+   if(!save(privacy.key,record))throw Error('Cannot retain consent choice');
+   consent=true;privacy.suspend(false);
+   enqueue([localEvent('consent',{version:2,notice_version:record.version,consented_at:record.decided_at})]);flush();
+  }
+  if(!value&&!forceClear&&erasure)void retryErasure();
+  return true;
  }
  async function deleteData(){
-  stopped=true;await setConsent(false);
-  if(!identity){status='Local data deleted';stopped=false;return;}
+  stopped=true;
   try{
-   const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+identity.token,'X-Installation':identity.id}});
-   if(!r.ok)throw Error('Delete failed');identity=null;save('observatory-identity',null);status='Collected data deleted';
+   const localCleared=await setConsent(false,{forceClear:true});
+   if(!erasure){status=localCleared?'Local playtest data cleared. If you previously shared from another browser, use that browser or contact the developer.':'Local cleanup incomplete. Close other game tabs and retry.';return;}
+   await retryErasure(true);
   }catch{status='Online deletion pending; please try again';}
   finally{stopped=false;}
  }
@@ -200,12 +300,18 @@
   // An explicit decision to wait is a session event, never a failure report.
   if(phase==='download_deferred')enqueue([localEvent('leave',{reason:'download_deferred',loading:loadingContext})]);
  }
- function failure(kind,message,manual=false){
+ function failure(kind,message,manual=false,adultConfirmed=false){
+  if(erasure||stopped)return false;
   if(consent!==true&&!manual)return;
+  if(manual&&adultConfirmed!==true)return false;
   const text=serializeError(message), signature=kind+':'+text;
   const count=(seenFailures.get(signature)||0)+1;
   if(seenFailures.size>=32&&!seenFailures.has(signature))return;
   seenFailures.set(signature,count);if(count!==1&&count%100!==0)return;
+  if(manual){
+   if(!canShare()||renewal||!save(privacy.manualKey,privacy.version))return false;
+   manualPending=true;
+  }
   let diagnostic={};try{diagnostic=JSON.parse(window.dreamDiagnostics?.report()||'{}');}catch{}
   // Only an allowlisted bounded projection is transmitted, never arbitrary local diagnostics.
   const current=(kind==='unclean_session'?diagnostic.previous:diagnostic.current)||{};
@@ -215,7 +321,9 @@
   // A browser may omit pagehide on close, reload, suspension or loading abort.
   // Retain context as a lifecycle observation, never promote it to an error.
   if(kind==='unclean_session')cleaned.reason='unobserved_session_end';
+  if(manual){cleaned.notice_version=privacy.version;cleaned.consented_at=now();}
   enqueue([localEvent(kind==='unclean_session'?'leave':'failure',cleaned)],manual).then(flush);
+  return true;
  }
  function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  async function exportLocal(){
@@ -244,39 +352,63 @@
   add('h2',first?'Help Dreamcore grow?':'Playtest data & feedback').id='observatory-title';
   add('p',first?'Share your runs and error reports with the developer to help improve builds and fix bugs. Every little bit helps!':'Choose whether to automatically share your runs and error reports with the developer.').id='observatory-intro';
   add('p','Sharing is optional and never affects gameplay. Change your choice anytime in Settings → Playtest & feedback.').className='small';
+  add('p','Playtest participation is for adults aged 18 or older.').className='small';
+  const privacyLink=add('a','Privacy notice');privacyLink.href='privacy.html';privacyLink.target='_blank';privacyLink.rel='noopener';
   const details=add('details');add('summary','What gets shared?',details);
   const list=add('ul',null,details);
   for(const text of ['Run progress, choices, skills, equipment and results.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.'])add('li',text,list);
   add('p','Data is stored privately on Cloudflare for 90 days. Runs marked as references are kept longer.',details);
-  add('p','Turning sharing off stops collection and clears pending uploads. You can also delete previously shared data here.',details);
+  add('p','Turning sharing off clears local playtest history and requests deletion of already uploaded data from this browser. If you are offline, the request is retried when the game is open and connected.',details);
+  if(renewal)add('p','Please choose again for the updated notice. Updating your choice clears older local playtest history and pending uploads, not online data.',details);
   const notice=add('p');notice.className='small';notice.setAttribute('role','status');
-  if(!endpoint)notice.textContent='Sharing is not available in this version yet.';
+  if(erasure)notice.textContent=status;
+  else if(!canShare())notice.textContent='Sharing is not available in this version yet.';
   const choices=add('div');choices.className='choices';
+  function adultCheck(id,parent){
+   const label=add('label',null,parent),check=add('input',null,label);check.type='checkbox';check.id=id;
+   label.append(' I confirm I am 18 or older.');return check;
+  }
+  function confirmed(check){if(check.checked)return true;notice.textContent='Please confirm you are 18 or older to share playtest data.';check.focus();return false;}
   if(first){
-   button('Yes, share playtest data',async()=>{await setConsent(true);close();},choices).disabled=!endpoint;
+   const adult=adultCheck('observatory-auto-adult',choices);
+   button('Yes, share playtest data',async()=>{if(!confirmed(adult))return;if(await setConsent(true,{adultConfirmed:true}))close();else notice.textContent=status;},choices).disabled=!canShare();
    button('Play without sharing',async()=>{await setConsent(false);close();},choices);
   }else{
    add('p',consent?'Automatic sharing is on.':'Automatic sharing is off.');
-   button(consent?'Turn sharing off':'Turn sharing on',async()=>{await setConsent(!consent);open();},choices).disabled=!endpoint&&!consent;
+   const adult=consent?null:adultCheck('observatory-auto-adult',choices);
+   const toggle=button(consent?'Turn sharing off':'Turn sharing on',async()=>{if(adult&&!confirmed(adult))return;await setConsent(!consent,{adultConfirmed:!!adult?.checked});open();},choices);
+   if(!consent){toggle.dataset.sharingAction='';toggle.disabled=!!erasure||!canShare();}
    button('Back to the game',close,choices);
    const tools=add('details');add('summary','Manage saved data',tools);
    add('p',`${queueCount} upload parts pending · ${status}${gaps?' · Some records may be missing':''}`,tools).className='small';
    const actions=add('div',null,tools);actions.className='tools';
    button('Download a local copy',exportLocal,actions);
-   button('Delete my collected data',async()=>{if(!window.confirm('Delete your collected playtest data and turn sharing off?'))return;await deleteData();open();document.querySelector('#observatory-panel [role="status"]').textContent=status;},actions);
+   button(erasure?'Retry online deletion':'Delete my collected data',async()=>{if(!erasure&&!window.confirm('Delete your collected playtest data and turn sharing off?'))return;await deleteData();open();document.querySelector('#observatory-panel [role="status"]').textContent=status;},actions);
    const report=add('details');add('summary','Report a problem',report);
    add('p','This sends your description and technical context once, even if automatic sharing is off.',report).className='small';
    const input=add('textarea',null,report);input.placeholder='What happened? Please leave out personal information.';input.setAttribute('aria-label','Problem description');input.maxLength=2000;
-   button('Send this report',()=>{if(!input.value.trim()){notice.textContent='Please briefly describe what happened.';input.focus();return;}failure('manual',input.value,true);notice.textContent='Thank you! Your report will be sent when a connection is available.';input.value='';},report).disabled=!endpoint;
+   const reportAdult=adultCheck('observatory-report-adult',report);
+   const send=button('Send this report',()=>{if(!confirmed(reportAdult))return;if(!input.value.trim()){notice.textContent='Please briefly describe what happened.';input.focus();return;}if(!failure('manual',input.value,true,true)){notice.textContent='Report could not be queued.';return;}notice.textContent='Thank you! Your report will be sent when a connection is available.';input.value='';reportAdult.checked=false;},report);
+   send.dataset.sharingAction='';send.disabled=!!erasure||!canShare();
   }
   panel.addEventListener('cancel',e=>{e.preventDefault();if(first)setConsent(false).then(close);else close();});
   document.body.append(panel);panel.showModal();
  }
 
  window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
- if(consent===true||identity)change().catch(()=>{status='Local storage unavailable; you can keep playing';});
- addEventListener('storage',e=>{if(e.key==='observatory-consent'){generation++;controller?.abort();consent=read('observatory-consent',false);}if(e.key==='observatory-identity')identity=read('observatory-identity',null);if(e.key==='observatory-retry-at')retryAt=Math.max(retryAt,Number(read('observatory-retry-at',0))||0);});
- addEventListener('online',()=>{retryAt=Math.max(0,Number(read('observatory-retry-at',0))||0);flush();});
+ if(mayUseQueue())change().catch(()=>{status='Local storage unavailable; you can keep playing';});
+ addEventListener('storage',e=>{
+  if(e.key===erasureKey||e.key===null){
+   const previous=erasure;erasure=read(erasureKey,null);erasureSaved=!!erasure;
+   if(erasure){generation++;controller?.abort();consent=false;manualPending=false;privacy?.suspend(true);showErasureStatus(erasure.blocked?erasureUnverified:'Online deletion pending. Sharing is off.');void retryErasure();}
+   else if(previous)showErasureStatus('Sharing is off.');
+  }
+  if(e.key===privacy?.key||e.key===null){generation++;controller?.abort();consentRecord=privacy?.choice()??null;if(consentRecord)renewal=!!consentRecord.cleanup_pending;consent=!erasure&&canShare()?consentRecord?.granted??false:false;privacy?.suspend(!consent);if(!consent)window.dreamDiagnostics?.clearPlaytestHistory?.();}
+  if(e.key===privacy?.manualKey||e.key===null)manualPending=!erasure&&!renewal&&canShare()&&privacy.manual();
+  if(e.key==='observatory-identity')identity=mayUseQueue()?read('observatory-identity',null):null;
+  if(e.key==='observatory-retry-at'&&mayUseQueue())retryAt=Math.max(retryAt,Number(read('observatory-retry-at',0))||0);
+ });
+ addEventListener('online',()=>{if(erasure)void retryErasure();else if(mayUseQueue()){retryAt=Math.max(0,Number(read('observatory-retry-at',0))||0);flush();}});
  addEventListener('error',e=>failure('javascript',e.error||e.message));
  addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
  document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);
@@ -288,7 +420,9 @@
  });
  if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted,loading:previous.loading});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}
  if(consent===true&&previous&&!previous.closed){lastContext=previous.context||{};lastSnapshot=previous.snapshot_id||'';lastConfirmedSnapshot=previous.confirmed_snapshot_id||'';failure('unclean_session','Vorherige Sitzung endete ohne Abschluss; Ursache unbekannt');}
- setInterval(flush,30000);
+ if(consentRecord?.cleanup_pending&&!consent)void setConsent(false);
+ else if(erasure)void retryErasure();
+ setInterval(()=>{if(erasure)void retryErasure();else void flush();},30000);
 })();
 
 

@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261109T224948464675Z",
+      "title": "Cached startup, combat readability and playtest privacy",
+      "summary": "The start screen now offers Play when the current build is cached. This update also improves combat readability, simplifies peaceful encounters and updates voluntary playtest sharing.",
+      "changes": [
+        "Play appears when both game files are cached; the download prompt estimates only the files still needed.",
+        "Added compact skill details, hold-to-inspect controls and clearer combat numbers on phones. Level-up effects now appear on the reward cards.",
+        "Peaceful encounters use shorter approach and exit paths; active skills are disabled outside combat. Navigation skips detailed searches between disconnected areas.",
+        "Fixed a crash when opening the result after a timed Champion Trial.",
+        "Playtest sharing requires a fresh opt-in with 18+ confirmation. Withdrawing consent stops uploads and requests deletion of shared data, with retry when back online."
+      ]
+    },
+    {
       "build": "20261106T144243658746Z",
       "title": "Solo runs, Blacksmith and combat performance",
       "summary": "Normal runs are now solo, with a Blacksmith visit at the start of Dungeon 4. This update also changes crafting access, reduces repeated combat work and refreshes menu and dungeon visuals.",

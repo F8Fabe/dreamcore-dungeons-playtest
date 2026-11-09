@@ -2,7 +2,16 @@
 (() => {
  'use strict';
  const mb=value=>(value/1000000).toFixed(1);
- window.dreamDownloadGate={prepare(config){
+ let files=new Map();
+ window.dreamDownloadGate={
+  fetchFile(file){
+   const entry=files.get(file);
+   if(!entry)return fetch(file);
+   if(entry.response){const response=entry.response;entry.response=null;return Promise.resolve(response);}
+   // A verified cache hit must never silently fall back to downloading on retry.
+   return fetch(entry.url,entry.local?{mode:'same-origin',cache:'only-if-cached'}:undefined);
+  },
+  prepare(config){
   const total=Object.values(config.fileSizes||{}).reduce((sum,size)=>sum+(Number.isFinite(size)&&size>0?size:0),0);
   const panel=document.getElementById('dream-download');
   const size=document.getElementById('dream-download-size');
@@ -10,15 +19,43 @@
   const progress=document.getElementById('dream-download-progress');
   const accept=document.getElementById('dream-download-start');
   const defer=document.getElementById('dream-download-defer');
+  const hint=panel.querySelector('.download-hint');
+  const build=document.documentElement.dataset.build;
+  files=new Map(Object.entries(config.fileSizes||{}).map(([file,bytes])=>{
+   const url=new URL(file,location.href);
+   url.searchParams.set('build',build);
+   return [file,{url,bytes,response:null,local:false}];
+  }));
   let started=false, leaving=false, resolveStart;
   const ready=new Promise(resolve=>{resolveStart=resolve;});
   const state=phase=>{
    window.dreamDiagnostics?.record({kind:'download_state',phase,total_bytes:total});
    window.dreamObservatory?.loading(phase,total);
   };
-  size.textContent=total>0?`Game files: approximately ${mb(total)} MB.`:'Game files need to be downloaded before playing.';
-  caption.textContent='Download the game now?';
+  let local=false;
+  caption.textContent='Checking for saved game files…';
   state('awaiting_download');
+  Promise.all([...files.values()].map(async entry=>{
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),2000);
+   try{
+    const response=await fetch(entry.url,{mode:'same-origin',cache:'only-if-cached',redirect:'error',signal:controller.signal});
+    if(response.status===200&&response.body){entry.response=response;entry.local=true;}
+   }catch{/* A missing or unavailable cache still requires confirmation. */}
+   finally{clearTimeout(timeout);}
+  })).then(()=>{
+   local=files.size>0&&[...files.values()].every(entry=>entry.local);
+   const missing=[...files.values()].filter(entry=>!entry.local).reduce((sum,entry)=>sum+(Number.isFinite(entry.bytes)&&entry.bytes>0?entry.bytes:0),0);
+   if(local){
+    caption.textContent='Ready to play';accept.textContent='Play';
+    size.hidden=true;hint.hidden=true;defer.hidden=true;
+   }else{
+    caption.textContent='Download the game now?';
+    const label=missing<total?'Remaining files':'Game files';
+    size.textContent=missing>0?`${label}: approximately ${mb(missing)} MB.`:'Game files need to be downloaded before playing.';
+   }
+   panel.hidden=false;
+  });
   defer.addEventListener('click',()=>{
    state('download_deferred');
    caption.textContent='Download postponed. You can start it here when you are ready.';
@@ -28,9 +65,10 @@
   accept.addEventListener('click',()=>{
    if(started)return;
    started=true;panel.hidden=true;
-   progress.hidden=false;progress.textContent=total>0?`0.0 / ${mb(total)} MB loaded`:'Downloading game files…';
-   caption.textContent='Downloading game files…';
-   state('downloading');resolveStart();
+   progress.hidden=local;progress.textContent=total>0?`0.0 / ${mb(total)} MB loaded`:'Loading game files…';
+   caption.textContent=local?'Starting the game…':'Loading game files…';
+   if(!local)state('downloading');
+   resolveStart();
   },{once:true});
   addEventListener('pagehide',()=>{leaving=true;});
   addEventListener('pageshow',()=>{leaving=false;});

@@ -1,7 +1,8 @@
 /* Bounded local-only breadcrumbs. No telemetry, network calls or save manipulation. */
 (() => {
+  const storageAllowed=()=>window.dreamPlaytestPrivacy?.permits()===true;
   let savedExperiment = 'baseline';
-  try { savedExperiment = localStorage.getItem('dreamcore-render-experiment') || 'baseline'; } catch (_) {}
+  try { if(storageAllowed())savedExperiment = localStorage.getItem('dreamcore-render-experiment') || 'baseline'; } catch (_) {}
   const requested = new URLSearchParams(location.search).get('render-test') || savedExperiment;
   const experiment = ['no-audio', 'stream-audio', 'no-blur', 'dpr2'].includes(requested) ? requested : 'baseline';
   window.dreamRenderExperiment = experiment;
@@ -17,7 +18,7 @@
   const key = 'dreamcore-render-diagnostics-v6';
   const modeKey = 'dreamcore-diagnostic-mode';
   let savedMode = 'standard';
-  try { savedMode = localStorage.getItem(modeKey) || savedMode; } catch (_) {}
+  try { if(storageAllowed())savedMode = localStorage.getItem(modeKey) || savedMode; } catch (_) {}
   const chosenMode = new URLSearchParams(location.search).get('diagnostic-mode') || savedMode;
   const mode = ['standard', 'minimal', 'off'].includes(chosenMode) ? chosenMode : 'standard';
   window.dreamDiagnosticMode = mode;
@@ -44,6 +45,7 @@
     return null;
   }
   function read(name) {
+    if(!storageAllowed())return null;
     try { const text = localStorage.getItem(name); return text && text.length <= 262144 ? JSON.parse(text) : null; } catch (_) { return null; }
   }
   function readSession(name) {
@@ -107,6 +109,7 @@
     if (mode === 'off') return;
     const now = clock();
     if (!urgent && now - lastWrite < (mode === 'minimal' ? 5000 : 1000)) return;
+    if (!storageAllowed()) return;
     lastWrite = now;
     const started = clock();
     try {
@@ -243,11 +246,21 @@
   function restart(nextExperiment = experiment, nextMode = mode) {
     session.end={kind:'restart_requested',at:Date.now(),next_mode:nextMode,next_experiment:nextExperiment};
     record({kind:'restart_requested'});persist(true);
-    try { localStorage.setItem('dreamcore-render-experiment',nextExperiment);localStorage.setItem(modeKey,nextMode); } catch (_) {}
+    try { if(storageAllowed()){localStorage.setItem('dreamcore-render-experiment',nextExperiment);localStorage.setItem(modeKey,nextMode);} } catch (_) {}
     const target=new URL(location.href);target.searchParams.set('render-test',nextExperiment);target.searchParams.set('diagnostic-mode',nextMode);
     location.href=target.href;
   }
-  window.dreamDiagnostics = {mode, record, heartbeat, failure, attachEngine, previous, current: session, history, report, restart, open, download() {
+  function clearPlaytestHistory(){
+    previous=null;history.length=0;
+    for(const field of ['events','resources','failures','samples','timeline'])session[field].length=0;
+    let cleared=true;
+    const keys=Array.from({length:6},(_,i)=>'dreamcore-render-diagnostics-v'+(i+1));
+    for(const name of [modeKey,'dreamcore-render-experiment',...keys.flatMap(k=>[k,k+'-previous',k+'-history'])]){
+      try{localStorage.removeItem(name);}catch{cleared=false;}
+    }
+    return cleared;
+  }
+  window.dreamDiagnostics = {mode, record, heartbeat, failure, attachEngine, get previous(){return previous;}, current: session, history, report, restart, open, clearPlaytestHistory, download() {
     const blob = new Blob([report()], {type: 'application/json'});
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = 'dreamcore-diagnostics.json'; link.click();

@@ -1,2 +1,6 @@
 // Public ingest endpoint. Uploads still require the player's explicit consent.
-window.dreamObservatoryConfig = {endpoint: 'https://dreamcore-observatory-ingest.fabeceo.workers.dev'};
+window.dreamObservatoryConfig = {
+ endpoint: 'https://dreamcore-observatory-ingest.fabeceo.workers.dev',
+ // The reviewed notice is available; sharing still requires a fresh opt-in.
+ privacyNoticeReady: true
+};
