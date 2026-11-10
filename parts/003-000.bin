@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261110T003918660734Z",
+      "title": "Pacing Prototype",
+      "summary": "Developer Mode now includes a short, separately saved Pacing Prototype. It tests two combat sections, a build break and a Poolcaller fight.",
+      "changes": [
+        "Open Pacing Prototype in Developer Mode and choose an On-Hit, Poison or Fire preset and a seed.",
+        "Face overlapping enemy groups with warnings before reinforcements. Between sections, choose a passive, decide whether to take an active skill, and resolve an item before continuing.",
+        "Resume at the start of the current section from a separate prototype save. Prototype runs leave normal progression alone, and the results screen can copy a test report.",
+        "Runs and trials saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
       "build": "20261109T234912424512Z",
       "title": "Hero unlocks and Champion Trial results",
       "summary": "Hero unlocks and remaining pulls survive restarting after an incompatible saved run or trial. This build also includes the Champion Trial results fix.",
