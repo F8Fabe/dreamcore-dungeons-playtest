@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "build": "20261111T162056835644Z",
+  "build": "20261111T230417081421Z",
   "fixes": [
     {
       "bug_id": 36,
@@ -8,9 +8,9 @@
     }
   ],
   "artifacts": {
-    "build-manifest.json": "339a58f107d91e29e6e0e7d262f8f0ad588a889dfbcc3abcf4a79eed5cf1b3ee",
-    "changelog.html": "2e1b4284ff955f334e3c452a4c80d3144e3f4d7bd80a4ab90360860587500d06",
-    "changelog.json": "a3da7b1a210f297839e9df084cef66d9899d27055b7a8bab9eff22b24a358a31",
+    "build-manifest.json": "e6bf4b34e1becddbc4ba074958642135aa1fe34870f9e1c65e111521efa25c54",
+    "changelog.html": "15a32776d02caa690c9409288e0e4980a4f73fdbd0a96c104970c83e52a3e776",
+    "changelog.json": "32c85df3baa04f1c4aa4d76444c5ea7580794f2942973ff5b9a3eb094cec69e3",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
@@ -21,10 +21,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "065d76d1d228995c05299e05c8b6fea1b0a35d58e0ee3635c536d3edbf6e7158",
+    "index.html": "b8a6a4486447f4f86f782d0a740780a4941490f8821b8dfa6732805d3e785b51",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "f582e0d2874633cb0af6d220eaacea67557575f97c8fe5a36d4a2f6fcc41d589",
+    "index.pck": "10cbee48b9b06ff3f6d63e7c49e1361297db037e63d5615ceab2986ccebc1f3a",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -35,13 +35,14 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Dream V2 from the main hub",
-    "summary": "The Dream Library now offers separate V1 and V2 tickets. V2 opens the full arena route with a heroine from your unlocked roster.",
+    "title": "Normal Dream, Hard and heroine progression",
+    "summary": "Normal Dream is now the main arena route. Each heroine can keep her gear and a winning build, then take that build into Hard.",
     "changes": [
-      "Choose Dream V1 for the original dungeon run or Dream V2 for the full arena route directly from the hub.",
-      "Pick an unlocked heroine for a fresh V2 run, or continue from the V2 checkpoint.",
-      "Return to the hub from V2 results or retry the same arena setup. V1 and V2 keep separate checkpoints.",
-      "Checkpoints saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      "Play Normal Dream through 15 arenas. Save a winning Normal build to unlock Hard for that heroine. Hard starts with the saved skills and current gear and skips XP and skill drafts.",
+      "Manage each heroine\u2019s equipment in the Heroines menu. Compare, keep or replace her saved winning build after a Normal victory. The former dungeon run is in the Developer Tools archive.",
+      "Chill stacks can trigger Freeze and Icebreak. Cascade can hit already frozen enemies without removing Freeze, and Frostfire Orb scales with both Fire and Frost Power.",
+      "Normal shows banked levels and catches the XP display up during build breaks. After a camera drag, the view returns automatically after three seconds.",
+      "Checkpoints from earlier rules require a fresh run. Hero unlocks and remaining pulls carry forward."
     ]
   }
 }
