@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261111T135650440061Z",
+      "title": "Crossbows, ranged combat and Pacing Prototype v2",
+      "summary": "Crossbows join the ranged weapon pool, and combat targeting now uses range and valid targets without wall sight checks. Pacing Prototype v2 starts at level 1 and tests three combat sections with two build breaks.",
+      "changes": [
+        "Added a slow physical crossbow family with bow range. Heavy Shot now hits a selected target, and Prism Lens adds a bounce that grows stronger along its path.",
+        "Ranged projectiles no longer pierce through enemies. Walls no longer block valid attacks, area effects or bounces within range. Walls still constrain movement.",
+        "Pacing Prototype v2 uses real class starter choices, three combat sections and two build breaks. The commander buffs surviving enemies until he falls.",
+        "Ability reward cards now flip to reveal the skill before you choose it.",
+        "Runs and trials saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
       "build": "20261110T003918660734Z",
       "title": "Pacing Prototype",
       "summary": "Developer Mode now includes a short, separately saved Pacing Prototype. It tests two combat sections, a build break and a Poolcaller fight.",
