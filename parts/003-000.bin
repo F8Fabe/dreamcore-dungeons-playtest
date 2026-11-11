@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261111T162056835644Z",
+      "title": "Dream V2 from the main hub",
+      "summary": "The Dream Library now offers separate V1 and V2 tickets. V2 opens the full arena route with a heroine from your unlocked roster.",
+      "changes": [
+        "Choose Dream V1 for the original dungeon run or Dream V2 for the full arena route directly from the hub.",
+        "Pick an unlocked heroine for a fresh V2 run, or continue from the V2 checkpoint.",
+        "Return to the hub from V2 results or retry the same arena setup. V1 and V2 keep separate checkpoints.",
+        "Checkpoints saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
       "build": "20261111T154658824843Z",
       "title": "Full arena route and skill priority controls",
       "summary": "Pacing Prototype now has a six-arena Short run and a fifteen-arena Full run. Active skills show their priority and highlight where they will land when dragged.",
