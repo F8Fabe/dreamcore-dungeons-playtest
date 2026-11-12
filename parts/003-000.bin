@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261112T230239790748Z",
+      "title": "Boss tuning and active-first rewards",
+      "summary": "Arena bosses now use profiles for the dungeon tier where you fight them. When a level break offers several skill picks, active choices come first.",
+      "changes": [
+        "Boss and reinforcement health and damage use tier-specific values across Dungeons 1–5.",
+        "Boss fights have finite healing, shield and summon budgets that persist when you resume an arena.",
+        "Boss enemies use a dedicated 3× attack coefficient for Heavy Strike.",
+        "Resolve all earned active skill offers before passive offers. Passive rolls then use the build you just chose."
+      ]
+    },
+    {
       "build": "20261112T220828035369Z",
       "title": "Heroine Mastery and clearer skill descriptions",
       "summary": "Each heroine now earns her own Mastery, and skill descriptions are easier to scan. Arena routes have revised rewards, a wider boss pool and rare events you can spot during a run.",

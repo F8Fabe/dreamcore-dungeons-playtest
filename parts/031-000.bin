@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "build": "20261112T220828035369Z",
+  "build": "20261112T230239790748Z",
   "fixes": [],
   "artifacts": {
-    "build-manifest.json": "0de893530220c6f7ff92d8eb6cce96a985630359e87605e908e03a497592fe09",
-    "changelog.html": "ab283cfd88896472d15a76ca7dfa54108d1e4f924e3d4ebcbcf66a827cb7bbcf",
-    "changelog.json": "80ab06571ae5810f0affceb908774104f3710cca9fe0a091ede7edbbd4acb1ac",
+    "build-manifest.json": "45ec59fe817a324d5c3715cf43403d154b38512e78e8da2b8a35c0ae0cea70b0",
+    "changelog.html": "f1150bb5622c7e30c1cedba5f4b54fab7fc54e8b8d46cf96485b8c3acf11f624",
+    "changelog.json": "da037f8ce438e54ce15af0450b6c9e8359786320ed11074ffa6bb1daa0ca887b",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
@@ -16,10 +16,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "e4bc6a84de6b775578a8ebe77c0fbd10516a9c38206f032fc08068986790735e",
+    "index.html": "3605a46812b4bba4cdcfa1c865ce10b15244793b082b6bb11558b787987a8c21",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "909c968e585060c82b2904a9b29739ade3a6856f619acb3bc34587c7f759e011",
+    "index.pck": "4d5fcd2df1285ddd944817fb49fd913423d4ea5ef0fe406573bc21efad814699",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -30,14 +30,13 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Heroine Mastery and clearer skill descriptions",
-    "summary": "Each heroine now earns her own Mastery, and skill descriptions are easier to scan. Arena routes have revised rewards, a wider boss pool and rare events you can spot during a run.",
+    "title": "Boss tuning and active-first rewards",
+    "summary": "Arena bosses now use profiles for the dungeon tier where you fight them. When a level break offers several skill picks, active choices come first.",
     "changes": [
-      "Mastery unlocks up to three saved winning builds, Collect, Normal offer controls and cosmetics for each heroine.",
-      "Skill descriptions and upgrade reminders are shorter. Build Direction shows the themes your build has invested in, and skill details use matching theme chips.",
-      "Lightning, Fire, Poison and Bleed have been reworked. Lightning can strike in salvos or chain between enemies, and Bleed stores damage in wounds that stronger physical hits can deepen.",
-      "Bosses can appear across all five dungeon tiers and scale to their destination. Normal rewards follow actual level-ups, and the final Normal boss now drops loot.",
-      "Rare events can appear between waves or tie a find to an enemy group. Reward popups keep their size while you inspect choices, and combat has new cues for skill hits, heals and buffs."
+      "Boss and reinforcement health and damage use tier-specific values across Dungeons 1\u20135.",
+      "Boss fights have finite healing, shield and summon budgets that persist when you resume an arena.",
+      "Boss enemies use a dedicated 3\u00d7 attack coefficient for Heavy Strike.",
+      "Resolve all earned active skill offers before passive offers. Passive rolls then use the build you just chose."
     ]
   }
 }
