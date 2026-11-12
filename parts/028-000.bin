@@ -105,7 +105,7 @@
   queueCount=0;
  }
  function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
- function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',kind,data};}
+ function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',arena:lastContext.arena,kind,data};}
  function enqueue(events,oneShot=false){
    if(!mayUseQueue()||(consent!==true&&!oneShot)||stopped)return Promise.resolve();
   const epoch=generation;
@@ -113,9 +113,9 @@
     if(stopped||!mayUseQueue()||epoch!==generation||(!oneShot&&consent!==true))return;
    const rows=[];
    for(const raw of events){
-     const e={...raw,build:document.documentElement.dataset.build||'local',received_client_at:now(),
+     const e={...raw,build:raw.build||document.documentElement.dataset.build||'local',received_client_at:now(),
       privacy:{notice_version:privacy.version,permission:oneShot?'manual_report':'automatic',consented_at:oneShot?raw.data.consented_at:consentRecord.decided_at,adult_confirmed:true}};
-    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version};
+    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version,arena:e.arena};
     if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
     const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
     if(count>72||bytes(text)>4*1024*1024){gaps++;continue;}
@@ -126,7 +126,8 @@
    }
    await change(rows);save('observatory-gaps',gaps);
    if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,loading:loadingContext,at:now()});
-  }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;});
+   return true;
+  }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;return false;});
   if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
   return chain;
  }
@@ -146,11 +147,28 @@
   if(!flushTask)flushTask=flushOnce().finally(()=>{flushTask=null;});
   return flushTask;
  }
+ let retiredLocalCleaned=false;
+ async function cleanupRetiredLocal(){
+  if(retiredLocalCleaned||!mayUseQueue())return;
+  const groups=new Map();
+  for(const row of await all()){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
+  const remove=[];
+  for(const rows of groups.values()){
+   rows.sort((a,b)=>a.index-b.index);
+   if(rows.length!==rows[0].count)continue;
+   try{const e=JSON.parse(rows.map(r=>r.data).join(''));
+    if(['run_start','run_origin','item','snapshot','attempt_start','attempt_end','run_end','offers','action','abandon'].includes(e.kind)&&e.arena?.version!==1)remove.push(...rows.map(r=>r.id));
+   }catch{/* Incomplete/unknown diagnostic payloads are not deletion candidates. */}
+  }
+  if(remove.length)await change([],remove);
+  retiredLocalCleaned=true;
+ }
  async function flushOnce(){
    if(busy||stopped||!mayUseQueue()||now()<retryAt)return;
   busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
   try{
     await chain;if(epoch!==generation||!mayUseQueue())return;
+    await cleanupRetiredLocal();
     const rows=await pending();if(!rows.length){clearManualPermission();return;}
    const batch=[];let payload='';
    for(const row of rows){
@@ -187,7 +205,7 @@
    for(const {row} of batch){
     const matches=ack.parts.filter(a=>a.id===row.id);if(matches.length!==1)throw Error('Missing or duplicate acknowledgement');
     const result=matches[0];
-    if(result.status===200){if(row.oneShot&&!consent)delivered.push(row.id);else saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
+    if(result.status===200){if(result.retired||row.oneShot&&!consent)delivered.push(row.id);else saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
     else if([400,413,422].includes(result.status))rejected.push(row.id);
     else throw Error('Unconfirmed part');
    }
@@ -322,7 +340,9 @@
   // Retain context as a lifecycle observation, never promote it to an error.
   if(kind==='unclean_session')cleaned.reason='unobserved_session_end';
   if(manual){cleaned.notice_version=privacy.version;cleaned.consented_at=now();}
-  enqueue([localEvent(kind==='unclean_session'?'leave':'failure',cleaned)],manual).then(flush);
+  const reportEvent=localEvent(kind==='unclean_session'?'leave':'failure',cleaned);
+  if(current.engine?.arena?.version===1){reportEvent.arena=current.engine.arena;reportEvent.run_id=current.engine.run_id||reportEvent.run_id;reportEvent.attempt_id=current.engine.attempt_id||reportEvent.attempt_id;reportEvent.rules_hash=current.engine.rules_hash||reportEvent.rules_hash;}
+  enqueue([reportEvent],manual).then(flush);
   return true;
  }
  function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -356,7 +376,7 @@
   const privacyLink=add('a','Privacy notice');privacyLink.href='privacy.html';privacyLink.target='_blank';privacyLink.rel='noopener';
   const details=add('details');add('summary','What gets shared?',details);
   const list=add('ul',null,details);
-  for(const text of ['Run progress, choices, skills, equipment and results.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.'])add('li',text,list);
+  for(const text of ['Arena difficulty, heroine, progress, choices, skills, worn equipment and results, including saved gear and victory-build decisions.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.'])add('li',text,list);
   add('p','Data is stored privately on Cloudflare for 90 days. Runs marked as references are kept longer.',details);
   add('p','Turning sharing off clears local playtest history and requests deletion of already uploaded data from this browser. If you are offline, the request is retried when the game is open and connected.',details);
   if(renewal)add('p','Please choose again for the updated notice. Updating your choice clears older local playtest history and pending uploads, not online data.',details);
@@ -395,7 +415,13 @@
   document.body.append(panel);panel.showModal();
  }
 
- window.dreamObservatory={sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
+ const receipts={},receiptPending=new Set();
+ function enqueueReceipt(event){
+  if(receipts[event.id]||receiptPending.has(event.id)||!consent||event.consent_epoch!==consentRecord?.decided_at)return;
+  receiptPending.add(event.id);
+  enqueue([event]).then(ok=>{if(ok){receipts[event.id]=true;const keys=Object.keys(receipts);if(keys.length>64)delete receipts[keys[0]];}receiptPending.delete(event.id);});
+ }
+ window.dreamObservatory={receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
  if(mayUseQueue())change().catch(()=>{status='Local storage unavailable; you can keep playing';});
  addEventListener('storage',e=>{
   if(e.key===erasureKey||e.key===null){

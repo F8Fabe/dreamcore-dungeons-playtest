@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261112T114957009657Z",
+      "title": "Arena becomes the main game",
+      "summary": "Normal and Hard are now the only regular run modes. This update starts everyone on a fresh profile and resets previous unlocks, gear, saved builds and active runs.",
+      "changes": [
+        "Start Normal or Hard from the hub. The original dungeon route and Champion Trials have been removed.",
+        "Manage gear per heroine. Normal starts with a fresh skill build, and a winning build unlocks Hard for that heroine.",
+        "Continue a saved Arena run from the hub. Gear carried into a run stays in the heroine’s collection if you replace it during the run.",
+        "Opt-in playtest reports now track Arena difficulty, clears, build choices and gear progression."
+      ]
+    },
+    {
       "build": "20261111T230417081421Z",
       "title": "Normal Dream, Hard and heroine progression",
       "summary": "Normal Dream is now the main arena route. Each heroine can keep her gear and a winning build, then take that build into Hard.",

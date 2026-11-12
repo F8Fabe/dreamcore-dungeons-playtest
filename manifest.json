@@ -7,27 +7,27 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 305603,
+    "bytes": 302694,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "e6bf4b34e1becddbc4ba074958642135aa1fe34870f9e1c65e111521efa25c54"
+    "sha256": "478adfb6e03a2a5e001139167fd2d5b1eea041bdd89f3afbf6bdb195447e2558"
   },
   {
     "path": "changelog.html",
-    "bytes": 15902,
+    "bytes": 16805,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "15a32776d02caa690c9409288e0e4980a4f73fdbd0a96c104970c83e52a3e776"
+    "sha256": "e90f07e2ae975ae2f7785f6936495c73f42d9814d2fa7172ab4a9dcbcdc1f5a1"
   },
   {
     "path": "changelog.json",
-    "bytes": 12957,
+    "bytes": 13770,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "32c85df3baa04f1c4aa4d76444c5ea7580794f2942973ff5b9a3eb094cec69e3"
+    "sha256": "8fb9022e6ffaebb9adc5430f15d2d35b7c365d45b2f04a378a1a532527866cbd"
   },
   {
     "path": "diagnostics.js",
@@ -115,7 +115,7 @@
     "parts": [
       "014-000.bin"
     ],
-    "sha256": "b8a6a4486447f4f86f782d0a740780a4941490f8821b8dfa6732805d3e785b51"
+    "sha256": "dcac92d1e9c288b97bd795d5dadd498d204e817e53baddd0e697a6b7289cdba8"
   },
   {
     "path": "index.icon.png",
@@ -135,7 +135,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 87811088,
+    "bytes": 87706540,
     "parts": [
       "017-000.bin",
       "017-001.bin",
@@ -143,7 +143,7 @@
       "017-003.bin",
       "017-004.bin"
     ],
-    "sha256": "10cbee48b9b06ff3f6d63e7c49e1361297db037e63d5615ceab2986ccebc1f3a"
+    "sha256": "f3fa06aedb00914f4bc87ee67967fece946e8cd2cb74a07feeba7c516e5aea9a"
   },
   {
     "path": "index.png",
@@ -228,11 +228,11 @@
   },
   {
     "path": "observatory.js",
-    "bytes": 34504,
+    "bytes": 36371,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "cfcad4da524ad20afd5462d63c12594e0d0636a568af5cac5bd227741559dd3e"
+    "sha256": "699b8e0bcf09af098e652bc33661d986c578fce106b1c5b9a8ef4ba4121bcff0"
   },
   {
     "path": "playtest_privacy.js",
@@ -252,11 +252,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 3645,
+    "bytes": 3198,
     "parts": [
       "031-000.bin"
     ],
-    "sha256": "9da8661e35823df060f02104e8b0314eea19714a9c8bdec59fdae427c5ef8868"
+    "sha256": "9160174354e1e6735b92d4de0a99ce703f8d9d63b44f72035dc93eaf08a74a9d"
   },
   {
     "path": "sleeping-trio-v1.webp",
