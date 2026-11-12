@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "build": "20261112T151403767312Z",
+  "build": "20261112T220828035369Z",
   "fixes": [],
   "artifacts": {
-    "build-manifest.json": "4faf1a23826fd0dfe4344ff7fc44e20705580f3ac4ab113103fd4056e64986f7",
-    "changelog.html": "b594845fa56364f705065a9596acf8fd581c697d82a30fe917f9e344990c47fe",
-    "changelog.json": "120527bee93914d58b28f428aef2de4389ef6e43c176093b1b142dfcc358c1e5",
+    "build-manifest.json": "0de893530220c6f7ff92d8eb6cce96a985630359e87605e908e03a497592fe09",
+    "changelog.html": "ab283cfd88896472d15a76ca7dfa54108d1e4f924e3d4ebcbcf66a827cb7bbcf",
+    "changelog.json": "80ab06571ae5810f0affceb908774104f3710cca9fe0a091ede7edbbd4acb1ac",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
-    "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
+    "download_gate.js": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
     "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
@@ -16,28 +16,28 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "80f8be235585a43225fa9a3a2758f263a3b7f64568a18036dee887b5963e9265",
+    "index.html": "e4bc6a84de6b775578a8ebe77c0fbd10516a9c38206f032fc08068986790735e",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "b1490675455b65df4c6238fddeb1bf83c6d1df81f54a30dd25b30db9c10e09f8",
+    "index.pck": "909c968e585060c82b2904a9b29739ade3a6856f619acb3bc34587c7f759e011",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
-    "observatory-config.js": "4ddc0f6490ead519ec12edac31cd4647b97389f9f54a827c9fb3011ba46654e3",
+    "observatory-config.js": "ab1de87d0d011e82bf5139abbd0f6fdb37fe046f91a2e3b88bf4475e1ec3f1e1",
     "observatory.js": "57c9496ed09e94313185b0cbb9b91dfe319b1b87260deb754f21d5e96d025d55",
     "playtest_privacy.js": "850368c84ddd1ffe05b38ee1775353c81c34e4ea50cc349ea1dad37052b18b1a",
     "privacy.html": "57269eadd8929a2b3929f99f5ad209c063362954f49dc983d21c43d083758ec7",
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Music, starter upgrades and Arena flow",
-    "summary": "The Dream Library and all five dungeons have their own music. Arena runs now show your route on a live star map, and skill offers give more builds a chance to come together.",
+    "title": "Heroine Mastery and clearer skill descriptions",
+    "summary": "Each heroine now earns her own Mastery, and skill descriptions are easier to scan. Arena routes have revised rewards, a wider boss pool and rare events you can spot during a run.",
     "changes": [
-      "Set separate Master, Music and Sound effects volumes in Settings. The mixer remembers your choices across restarts.",
-      "Added eight modifiers across Bleeding Cut, Double Slash, Bulwark and Frost Grasp. Owned modifiers stay inactive until their required base skill is available.",
-      "Skill offers use build fit as a weight. The Actives and Passives pages show the theme mix for each offer pool.",
-      "Newly picked cooldown skills slot in before spenders while preserving the order of existing skills. Arena level transitions continue automatically when there is no reward decision.",
-      "The star map follows the seeded Arena route and scrolls to the current encounter. Added Luna dialogue and updated Arena effects."
+      "Mastery unlocks up to three saved winning builds, Collect, Normal offer controls and cosmetics for each heroine.",
+      "Skill descriptions and upgrade reminders are shorter. Build Direction shows the themes your build has invested in, and skill details use matching theme chips.",
+      "Lightning, Fire, Poison and Bleed have been reworked. Lightning can strike in salvos or chain between enemies, and Bleed stores damage in wounds that stronger physical hits can deepen.",
+      "Bosses can appear across all five dungeon tiers and scale to their destination. Normal rewards follow actual level-ups, and the final Normal boss now drops loot.",
+      "Rare events can appear between waves or tie a find to an enemy group. Reward popups keep their size while you inspect choices, and combat has new cues for skill hits, heals and buffs."
     ]
   }
 }

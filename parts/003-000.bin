@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261112T220828035369Z",
+      "title": "Heroine Mastery and clearer skill descriptions",
+      "summary": "Each heroine now earns her own Mastery, and skill descriptions are easier to scan. Arena routes have revised rewards, a wider boss pool and rare events you can spot during a run.",
+      "changes": [
+        "Mastery unlocks up to three saved winning builds, Collect, Normal offer controls and cosmetics for each heroine.",
+        "Skill descriptions and upgrade reminders are shorter. Build Direction shows the themes your build has invested in, and skill details use matching theme chips.",
+        "Lightning, Fire, Poison and Bleed have been reworked. Lightning can strike in salvos or chain between enemies, and Bleed stores damage in wounds that stronger physical hits can deepen.",
+        "Bosses can appear across all five dungeon tiers and scale to their destination. Normal rewards follow actual level-ups, and the final Normal boss now drops loot.",
+        "Rare events can appear between waves or tie a find to an enemy group. Reward popups keep their size while you inspect choices, and combat has new cues for skill hits, heals and buffs."
+      ]
+    },
+    {
       "build": "20261112T151403767312Z",
       "title": "Music, starter upgrades and Arena flow",
       "summary": "The Dream Library and all five dungeons have their own music. Arena runs now show your route on a live star map, and skill offers give more builds a chance to come together.",

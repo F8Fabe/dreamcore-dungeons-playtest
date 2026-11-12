@@ -7,27 +7,27 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 305808,
+    "bytes": 330819,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "4faf1a23826fd0dfe4344ff7fc44e20705580f3ac4ab113103fd4056e64986f7"
+    "sha256": "0de893530220c6f7ff92d8eb6cce96a985630359e87605e908e03a497592fe09"
   },
   {
     "path": "changelog.html",
-    "bytes": 18916,
+    "bytes": 20216,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "b594845fa56364f705065a9596acf8fd581c697d82a30fe917f9e344990c47fe"
+    "sha256": "ab283cfd88896472d15a76ca7dfa54108d1e4f924e3d4ebcbcf66a827cb7bbcf"
   },
   {
     "path": "changelog.json",
-    "bytes": 15705,
+    "bytes": 16919,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "120527bee93914d58b28f428aef2de4389ef6e43c176093b1b142dfcc358c1e5"
+    "sha256": "80ab06571ae5810f0affceb908774104f3710cca9fe0a091ede7edbbd4acb1ac"
   },
   {
     "path": "diagnostics.js",
@@ -39,11 +39,11 @@
   },
   {
     "path": "download_gate.js",
-    "bytes": 5059,
+    "bytes": 5171,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025"
+    "sha256": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f"
   },
   {
     "path": "dreamcore-180.png",
@@ -115,7 +115,7 @@
     "parts": [
       "014-000.bin"
     ],
-    "sha256": "80f8be235585a43225fa9a3a2758f263a3b7f64568a18036dee887b5963e9265"
+    "sha256": "e4bc6a84de6b775578a8ebe77c0fbd10516a9c38206f032fc08068986790735e"
   },
   {
     "path": "index.icon.png",
@@ -135,7 +135,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 90248576,
+    "bytes": 91294768,
     "parts": [
       "017-000.bin",
       "017-001.bin",
@@ -143,7 +143,7 @@
       "017-003.bin",
       "017-004.bin"
     ],
-    "sha256": "b1490675455b65df4c6238fddeb1bf83c6d1df81f54a30dd25b30db9c10e09f8"
+    "sha256": "909c968e585060c82b2904a9b29739ade3a6856f619acb3bc34587c7f759e011"
   },
   {
     "path": "index.png",
@@ -220,11 +220,11 @@
   },
   {
     "path": "observatory-config.js",
-    "bytes": 291,
+    "bytes": 297,
     "parts": [
       "027-000.bin"
     ],
-    "sha256": "4ddc0f6490ead519ec12edac31cd4647b97389f9f54a827c9fb3011ba46654e3"
+    "sha256": "ab1de87d0d011e82bf5139abbd0f6fdb37fe046f91a2e3b88bf4475e1ec3f1e1"
   },
   {
     "path": "observatory.js",
@@ -252,11 +252,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 3473,
+    "bytes": 3594,
     "parts": [
       "031-000.bin"
     ],
-    "sha256": "85fed1090b14d7469df46ae81d16d1d494fa8959fb76808fc4399604a1015b45"
+    "sha256": "57d436795b300ecab484dbde5cdda553f1cddc84e0216ecc3db865a40b804e0e"
   },
   {
     "path": "sleeping-trio-v1.webp",
