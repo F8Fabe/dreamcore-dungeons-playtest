@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261112T130846086183Z",
+      "title": "Nightmare and public highscores",
+      "summary": "Nightmare opens after a full Hard clear with that heroine. The hub now has public highscores for Nightmare, with a separate opt-in to share your future qualifying times.",
+      "changes": [
+        "Clear each Nightmare tier to unlock the next one for that heroine. Scores count active attempt time across the full run.",
+        "Arena encounter compositions are seeded, and the run guide shows the Twins encounter.",
+        "The arena progress strip shows encounter milestones. Boss rewards have a short reveal you can tap to skip.",
+        "Browse Nightmare highscores by tier from the hub. Publishing future qualifying scores requires a separate opt-in, and adding a display name is optional."
+      ]
+    },
+    {
       "build": "20261112T114957009657Z",
       "title": "Arena becomes the main game",
       "summary": "Normal and Hard are now the only regular run modes. This update starts everyone on a fresh profile and resets previous unlocks, gear, saved builds and active runs.",

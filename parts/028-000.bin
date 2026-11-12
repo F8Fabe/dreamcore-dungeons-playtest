@@ -142,6 +142,29 @@
   };
   return navigator.locks?.request?navigator.locks.request(registrationLock,create):create();
  }
+ const publicScoreNotice='2026-11-12.1';
+ const publicHighscores=()=>consent===true&&read('observatory-public-scores',{}).granted===true&&!!read('observatory-public-scores',{}).token&&read('observatory-public-scores',{}).version===publicScoreNotice&&read('observatory-public-scores',{}).epoch===consentRecord?.decided_at;
+ function dirtyProfile(){save('observatory-profile-revision',Math.max(now(),Number(read('observatory-profile-revision',0))+1));return save('observatory-profile-dirty',true);}
+ function setHighscoreSharing(value){
+  if(consent!==true||!save('observatory-public-scores',{version:publicScoreNotice,granted:value===true,token:value?uuid():'',epoch:consentRecord.decided_at}))return false;
+  dirtyProfile();status='Public score preference saved; online update pending.';
+  register().then(syncProfile).catch(()=>{});return true;
+ }
+ async function syncProfile(auth){
+  if(!consent||!read('observatory-profile-dirty',false))return;
+  const name=read('dreamcore-profile-name',''),revision=read('observatory-profile-revision',0),scoreEpoch=publicHighscores()?read('observatory-public-scores',{}).token||'':'';
+  const response=await fetch(endpoint+'/v1/profile',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:JSON.stringify({display_name:name,public_score_epoch:scoreEpoch,revision}),signal:AbortSignal.timeout(10000)});
+  if(!response.ok)throw Error('Profile update unavailable');
+  const result=await response.json();save('observatory-profile',result);
+  if(revision===read('observatory-profile-revision',0)){save('observatory-profile-dirty',false);status='Profile and public score preference saved online.';}
+ }
+ async function setProfileName(value){
+  const name=String(value).trim();
+  if(Array.from(name).length>32||/[\p{Cc}\p{Cf}]/u.test(name))throw Error('Use at most 32 visible characters.');
+  if(!save('dreamcore-profile-name',name)||!dirtyProfile())throw Error('Could not save your name.');
+  if(consent){try{await syncProfile(await register());}catch{return 'Name saved on this device. Online update pending.';}}
+  return consent?'Profile name saved.':'Name saved on this device. Enable playtest sharing to use it online.';
+ }
  let flushTask=null;
  function flush(){
   if(!flushTask)flushTask=flushOnce().finally(()=>{flushTask=null;});
@@ -169,7 +192,7 @@
   try{
     await chain;if(epoch!==generation||!mayUseQueue())return;
     await cleanupRetiredLocal();
-    const rows=await pending();if(!rows.length){clearManualPermission();return;}
+    const rows=await pending();if(!rows.length){if(consent&&read('observatory-profile-dirty',false))try{await syncProfile(await register());}catch{}clearManualPermission();return;}
    const batch=[];let payload='';
    for(const row of rows){
     if(stopped||(!consent&&!row.oneShot))continue;
@@ -180,6 +203,7 @@
    }
    if(!batch.length||epoch!==generation)return;
     const auth=await register();
+    try{await syncProfile(auth);}catch{}
    let wire=new TextEncoder().encode(payload),contentType='application/json';
    if(typeof CompressionStream==='function'){
     try{const compressed=new Uint8Array(await new Response(new Blob([wire]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
@@ -296,7 +320,7 @@
    if(!hadQueue)window.dreamDiagnostics?.clearPlaytestHistory?.();
    record.granted=true;record.adult_confirmed=true;record.decided_at=now();
    if(!save(privacy.key,record))throw Error('Cannot retain consent choice');
-   consent=true;privacy.suspend(false);
+   consent=true;privacy.suspend(false);dirtyProfile();
    enqueue([localEvent('consent',{version:2,notice_version:record.version,consented_at:record.decided_at})]);flush();
   }
   if(!value&&!forceClear&&erasure)void retryErasure();
@@ -363,6 +387,8 @@
    #observatory-panel *{box-sizing:border-box}#observatory-panel h2{font-size:26px;line-height:1.2;margin:8px 0 16px}#observatory-panel p{margin:12px 0;color:#d3cadd}#observatory-panel .eyebrow{color:#bea8e5;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
    #observatory-panel .choices{display:grid;gap:10px;margin-top:22px}#observatory-panel button{font:inherit;cursor:pointer;min-height:48px;border:1px solid #9380af;border-radius:12px;padding:11px 16px;background:#39304f;color:#fff;text-align:center}#observatory-panel button:hover{background:#514267}#observatory-panel button:focus-visible,#observatory-panel summary:focus-visible,#observatory-panel textarea:focus-visible{outline:3px solid #dec4ff;outline-offset:3px}#observatory-panel button:disabled{opacity:.6;cursor:wait}
    #observatory-panel details{margin-top:16px;border-top:1px solid #50445e;padding-top:14px}#observatory-panel summary{cursor:pointer;color:#dcc9f2}#observatory-panel ul{padding-left:22px;color:#d3cadd}#observatory-panel .small{font-size:13px;color:#b9afc8}#observatory-panel textarea{display:block;width:100%;min-height:100px;margin:12px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:12px;color:#fff;font:inherit}#observatory-panel .tools{display:grid;gap:10px;margin-top:14px}
+   #observatory-profile-name{display:block;box-sizing:border-box;width:100%;min-height:48px;margin:8px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:10px;color:#fff;font:inherit}
+   #observatory-panel label:has(#observatory-public-scores){display:block;margin:16px 0;line-height:1.5}
    @media(max-width:420px){#observatory-panel{padding:22px}#observatory-panel h2{font-size:24px}}
   `;panel.append(css);
   const add=(tag,text,parent=panel)=>{const n=document.createElement(tag);if(text)n.textContent=text;parent.append(n);return n;};
@@ -398,6 +424,16 @@
    const adult=consent?null:adultCheck('observatory-auto-adult',choices);
    const toggle=button(consent?'Turn sharing off':'Turn sharing on',async()=>{if(adult&&!confirmed(adult))return;await setConsent(!consent,{adultConfirmed:!!adult?.checked});open();},choices);
    if(!consent){toggle.dataset.sharingAction='';toggle.disabled=!!erasure||!canShare();}
+   const profile=add('details');add('summary','Profile name & public highscores',profile);
+   const nameLabel=add('label','Profile name (optional)',profile),nameInput=add('input',null,nameLabel);
+   nameInput.id='observatory-profile-name';nameInput.type='text';nameInput.maxLength=64;nameInput.value=read('dreamcore-profile-name','');nameInput.placeholder='Leave empty for Player '+(read('observatory-profile',{}).player_number||'N');
+   add('p','Use a nickname, not personal information. Names are not unique. Without a name, your assigned Player number is shown.',profile);
+   button('Save profile name',async()=>{notice.textContent=await setProfileName(nameInput.value);},profile);
+   const label=add('label',null,profile),check=add('input',null,label);check.type='checkbox';check.id='observatory-public-scores';check.checked=publicHighscores();check.disabled=!consent;
+   label.append(' Share my future Nightmare highscores');
+   check.onchange=()=>{if(!setHighscoreSharing(check.checked)){check.checked=false;notice.textContent='Enable playtest sharing first, or check browser storage.';}else notice.textContent='Preference saved. Online update pending until connected; cached lists refresh within one minute after confirmation.';};
+   add('p','Optional public sharing: future completed Nightmare scores show your profile name (or Player number), heroine and active clear time. Existing private scores stay private. Turning this off also requests removal of earlier public scores; while offline this waits for a connection. After confirmation, cached lists may show them for up to one more minute. Sharing again never republishes previous scores. Your name or Player number can link your public scores together.',profile).className='small';
+   if(!consent)add('p','Enable playtest sharing above to publish future highscores.',profile);
    button('Back to the game',close,choices);
    const tools=add('details');add('summary','Manage saved data',tools);
    add('p',`${queueCount} upload parts pending · ${status}${gaps?' · Some records may be missing':''}`,tools).className='small';
@@ -421,7 +457,7 @@
   receiptPending.add(event.id);
   enqueue([event]).then(ok=>{if(ok){receipts[event.id]=true;const keys=Object.keys(receipts);if(keys.length>64)delete receipts[keys[0]];}receiptPending.delete(event.id);});
  }
- window.dreamObservatory={receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
+ window.dreamObservatory={get publicHighscores(){return publicHighscores();},get publicScoreEpoch(){return publicHighscores()?read('observatory-public-scores',{}).token||'':'';},setHighscoreSharing,setProfileName,get profileName(){return read('dreamcore-profile-name','');},receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
  if(mayUseQueue())change().catch(()=>{status='Local storage unavailable; you can keep playing';});
  addEventListener('storage',e=>{
   if(e.key===erasureKey||e.key===null){
