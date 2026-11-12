@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261112T151403767312Z",
+      "title": "Music, starter upgrades and Arena flow",
+      "summary": "The Dream Library and all five dungeons have their own music. Arena runs now show your route on a live star map, and skill offers give more builds a chance to come together.",
+      "changes": [
+        "Set separate Master, Music and Sound effects volumes in Settings. The mixer remembers your choices across restarts.",
+        "Added eight modifiers across Bleeding Cut, Double Slash, Bulwark and Frost Grasp. Owned modifiers stay inactive until their required base skill is available.",
+        "Skill offers use build fit as a weight. The Actives and Passives pages show the theme mix for each offer pool.",
+        "Newly picked cooldown skills slot in before spenders while preserving the order of existing skills. Arena level transitions continue automatically when there is no reward decision.",
+        "The star map follows the seeded Arena route and scrolls to the current encounter. Added Luna dialogue and updated Arena effects."
+      ]
+    },
+    {
       "build": "20261112T130846086183Z",
       "title": "Nightmare and public highscores",
       "summary": "Nightmare opens after a full Hard clear with that heroine. The hub now has public highscores for Nightmare, with a separate opt-in to share your future qualifying times.",

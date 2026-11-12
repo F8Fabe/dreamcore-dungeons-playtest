@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "build": "20261112T130846086183Z",
+  "build": "20261112T151403767312Z",
   "fixes": [],
   "artifacts": {
-    "build-manifest.json": "c9a1613615e00081bb80b47a679a72bbe1fd505afd18e3641958ee12bbff420c",
-    "changelog.html": "c1d6775548a29c4e5c5341163c0f834a9263ba80a445d49bafe600ef59452e82",
-    "changelog.json": "b5f5a4d36e4d9d727472c4cbdc66cda86cf91f73bc32c19c65d22ae17042e960",
+    "build-manifest.json": "4faf1a23826fd0dfe4344ff7fc44e20705580f3ac4ab113103fd4056e64986f7",
+    "changelog.html": "b594845fa56364f705065a9596acf8fd581c697d82a30fe917f9e344990c47fe",
+    "changelog.json": "120527bee93914d58b28f428aef2de4389ef6e43c176093b1b142dfcc358c1e5",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
@@ -16,10 +16,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "d0d7ec2ed5575f0c5c204aa663c5047d215571059f382ab28850936953663d16",
+    "index.html": "80f8be235585a43225fa9a3a2758f263a3b7f64568a18036dee887b5963e9265",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "d7555deac97931eb77683b9e21cd37d75cf53693a71d8f726a9c0b9d1f16d1a1",
+    "index.pck": "b1490675455b65df4c6238fddeb1bf83c6d1df81f54a30dd25b30db9c10e09f8",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -30,13 +30,14 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Nightmare and public highscores",
-    "summary": "Nightmare opens after a full Hard clear with that heroine. The hub now has public highscores for Nightmare, with a separate opt-in to share your future qualifying times.",
+    "title": "Music, starter upgrades and Arena flow",
+    "summary": "The Dream Library and all five dungeons have their own music. Arena runs now show your route on a live star map, and skill offers give more builds a chance to come together.",
     "changes": [
-      "Clear each Nightmare tier to unlock the next one for that heroine. Scores count active attempt time across the full run.",
-      "Arena encounter compositions are seeded, and the run guide shows the Twins encounter.",
-      "The arena progress strip shows encounter milestones. Boss rewards have a short reveal you can tap to skip.",
-      "Browse Nightmare highscores by tier from the hub. Publishing future qualifying scores requires a separate opt-in, and adding a display name is optional."
+      "Set separate Master, Music and Sound effects volumes in Settings. The mixer remembers your choices across restarts.",
+      "Added eight modifiers across Bleeding Cut, Double Slash, Bulwark and Frost Grasp. Owned modifiers stay inactive until their required base skill is available.",
+      "Skill offers use build fit as a weight. The Actives and Passives pages show the theme mix for each offer pool.",
+      "Newly picked cooldown skills slot in before spenders while preserving the order of existing skills. Arena level transitions continue automatically when there is no reward decision.",
+      "The star map follows the seeded Arena route and scrolls to the current encounter. Added Luna dialogue and updated Arena effects."
     ]
   }
 }
