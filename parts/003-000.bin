@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "build": "20261112T235748633910Z",
+      "title": "Smoother dungeon scaling and clearer combat HUD",
+      "summary": "Enemy stats now scale more evenly from Dungeon 1 through 5. Combat warnings and HUD labels are easier to read, and the guide portrait appears while she speaks.",
+      "changes": [
+        "Enemy health and damage now scale by consistent steps between dungeon tiers, including bosses and their reinforcements.",
+        "Adjusted damage bursts and warning times on selected enemy attacks.",
+        "Added shadows to arena labels and route markers, and removed the backgrounds behind damage icons.",
+        "The guide portrait fades out after dialogue, and arena route labels stay within the screen edges."
+      ]
+    },
+    {
       "build": "20261112T230239790748Z",
       "title": "Boss tuning and active-first rewards",
       "summary": "Arena bosses now use profiles for the dungeon tier where you fight them. When a level break offers several skill picks, active choices come first.",
