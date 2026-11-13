@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "build": "20261112T235748633910Z",
+  "build": "20261113T163616920089Z",
   "fixes": [],
   "artifacts": {
-    "build-manifest.json": "add97faafd55445e8b2e985b6a54b0264c6750a4a3d456c1da8fa5b3ece9674f",
-    "changelog.html": "22b30454fce7db39c11d2816102cc2019f111caee9846a9ae8f3cb20c803f024",
-    "changelog.json": "d05071d8ed5ae9d1323ec22996bda7755ce9a54a4e4001a872f23768d346c5d9",
+    "build-manifest.json": "dcc6d03b1659f448db90f44b057413ef718d7ac6f3c455e10ecd04eca569db3f",
+    "changelog.html": "0712259733d5153d3489aa31cda906e785509e0e1796bf6e757d3f3adf9e0f77",
+    "changelog.json": "8364f49954ec978a76657c0426eb5ce8232dab3ce64e51ad197b65401ba4061e",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f",
     "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
@@ -16,10 +16,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "ab0af3efd1ba58ee7ca7ba09e37baba45105fe9cd0baf3e4b96ad2cbf2617b95",
+    "index.html": "a28caad7498a5d2fdb7a5c85d646d29cc51ad75401ab461852a159b0c881beee",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c",
-    "index.pck": "726932adbd1ea1e2091deb2ec0f73643300b45c5b23e3dac5ff7834a9aeb37e1",
+    "index.pck": "2f165cc10b1e47b92822a13e4a0ffd2a36be62d9d72044374840112564e76e4c",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -30,13 +30,14 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Smoother dungeon scaling and clearer combat HUD",
-    "summary": "Enemy stats now scale more evenly from Dungeon 1 through 5. Combat warnings and HUD labels are easier to read, and the guide portrait appears while she speaks.",
+    "title": "Summoner builds and continuous Arena runs",
+    "summary": "Arena runs now move through a continuous corridor with 15 reward stops. Holy, Shadow and summon builds have new skills, and Herbert is available for training from the Heroines menu.",
     "changes": [
-      "Enemy health and damage now scale by consistent steps between dungeon tiers, including bosses and their reinforcements.",
-      "Adjusted damage bursts and warning times on selected enemy attacks.",
-      "Added shadows to arena labels and route markers, and removed the backgrounds behind damage icons.",
-      "The guide portrait fades out after dialogue, and arena route labels stay within the screen edges."
+      "Travel between Arena encounters without leaving the corridor. Each full route has 15 item rewards.",
+      "Train with Herbert from Heroines and open the damage breakdown from the five-second DPS display.",
+      "Build around Holy, Shadow and allied summons with new skills, companion upgrades, hybrid affixes and summon art.",
+      "Normal starters now offer up to three active skills from expanded class pools. Your equipped gear carries into the run.",
+      "Updated combat audio and HUD feedback, including separate indicators for summon tempo, charges and echoes."
     ]
   }
 }

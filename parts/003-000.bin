@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261113T163616920089Z",
+      "title": "Summoner builds and continuous Arena runs",
+      "summary": "Arena runs now move through a continuous corridor with 15 reward stops. Holy, Shadow and summon builds have new skills, and Herbert is available for training from the Heroines menu.",
+      "changes": [
+        "Travel between Arena encounters without leaving the corridor. Each full route has 15 item rewards.",
+        "Train with Herbert from Heroines and open the damage breakdown from the five-second DPS display.",
+        "Build around Holy, Shadow and allied summons with new skills, companion upgrades, hybrid affixes and summon art.",
+        "Normal starters now offer up to three active skills from expanded class pools. Your equipped gear carries into the run.",
+        "Updated combat audio and HUD feedback, including separate indicators for summon tempo, charges and echoes."
+      ]
+    },
+    {
       "build": "20261112T235748633910Z",
       "title": "Smoother dungeon scaling and clearer combat HUD",
       "summary": "Enemy stats now scale more evenly from Dungeon 1 through 5. Combat warnings and HUD labels are easier to read, and the guide portrait appears while she speaks.",
