@@ -1,0 +1,22 @@
+/* Retry a failed main render target at most twice per failure episode, without reloading
+   gameplay or changing saves. Persistent/driver failures remain diagnostic errors. */
+(() => {
+  let notify=null, pending=false, attempts=0, retrying=false, failed=false;
+  window.dreamRenderRecovery={
+    install(callback){notify=callback;if(pending&&notify)notify();},
+    failure(message){
+      if(!/^WARNING: Could not create render target, status: /.test(message))return;
+      failed=true;
+      if(attempts>=2)return;
+      pending=true;if(notify)notify();
+    },
+    canRetry(){
+      const canvas=document.getElementById('canvas');
+      const gl=canvas?.getContext('webgl2');
+      return pending&&!retrying&&attempts<2&&document.visibilityState==='visible'&&
+        !!gl&&!gl.isContextLost()&&gl.drawingBufferWidth>0&&gl.drawingBufferHeight>0;
+    },
+    beginRetry(){pending=false;attempts++;retrying=true;failed=false;},
+    finishRetry(){retrying=false;if(!failed)attempts=0;}
+  };
+})();

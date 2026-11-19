@@ -7,33 +7,41 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 362701,
+    "bytes": 364800,
     "parts": [
       "001-000.bin"
     ],
-    "sha256": "dcc6d03b1659f448db90f44b057413ef718d7ac6f3c455e10ecd04eca569db3f"
+    "sha256": "9df1444cf3067da93290bccab9c3a33ebef7949d1b65e686e7fd53b38b7e2d89"
   },
   {
     "path": "changelog.html",
-    "bytes": 22917,
+    "bytes": 24073,
     "parts": [
       "002-000.bin"
     ],
-    "sha256": "0712259733d5153d3489aa31cda906e785509e0e1796bf6e757d3f3adf9e0f77"
+    "sha256": "2b6a79e374feebddd05563903614cae6fb945bbf88b9b4973ba68b75c9d7d34d"
   },
   {
     "path": "changelog.json",
-    "bytes": 19354,
+    "bytes": 20424,
     "parts": [
       "003-000.bin"
     ],
-    "sha256": "8364f49954ec978a76657c0426eb5ce8232dab3ce64e51ad197b65401ba4061e"
+    "sha256": "c9128ae8735b26e950648c5fa38ccc2be7f66f96122aaaa2dc16432866b11b1b"
+  },
+  {
+    "path": "context_recovery.js",
+    "bytes": 4320,
+    "parts": [
+      "004-000.bin"
+    ],
+    "sha256": "ae39cfc27b6637cc707c4985eb557db39388945880ec0d3c94658dfc959623cd"
   },
   {
     "path": "diagnostics.js",
     "bytes": 21176,
     "parts": [
-      "004-000.bin"
+      "005-000.bin"
     ],
     "sha256": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719"
   },
@@ -41,7 +49,7 @@
     "path": "download_gate.js",
     "bytes": 5171,
     "parts": [
-      "005-000.bin"
+      "006-000.bin"
     ],
     "sha256": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f"
   },
@@ -49,7 +57,7 @@
     "path": "dreamcore-180.png",
     "bytes": 51580,
     "parts": [
-      "006-000.bin"
+      "007-000.bin"
     ],
     "sha256": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281"
   },
@@ -57,7 +65,7 @@
     "path": "dreamcore-192.png",
     "bytes": 57599,
     "parts": [
-      "007-000.bin"
+      "008-000.bin"
     ],
     "sha256": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125"
   },
@@ -65,7 +73,7 @@
     "path": "dreamcore-512.png",
     "bytes": 322465,
     "parts": [
-      "008-000.bin"
+      "009-000.bin"
     ],
     "sha256": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b"
   },
@@ -73,7 +81,7 @@
     "path": "dreamcore-64.png",
     "bytes": 8666,
     "parts": [
-      "009-000.bin"
+      "010-000.bin"
     ],
     "sha256": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656"
   },
@@ -81,7 +89,7 @@
     "path": "dreamcore.webmanifest",
     "bytes": 474,
     "parts": [
-      "010-000.bin"
+      "011-000.bin"
     ],
     "sha256": "8ed15ba08a539dc197f3b682e27bd251b4da4ff98ce2e4e7ecb944562bad360c"
   },
@@ -89,7 +97,7 @@
     "path": "index.apple-touch-icon.png",
     "bytes": 51580,
     "parts": [
-      "011-000.bin"
+      "012-000.bin"
     ],
     "sha256": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281"
   },
@@ -97,7 +105,7 @@
     "path": "index.audio.position.worklet.js",
     "bytes": 2973,
     "parts": [
-      "012-000.bin"
+      "013-000.bin"
     ],
     "sha256": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8"
   },
@@ -105,51 +113,51 @@
     "path": "index.audio.worklet.js",
     "bytes": 7298,
     "parts": [
-      "013-000.bin"
+      "014-000.bin"
     ],
     "sha256": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3"
   },
   {
     "path": "index.html",
-    "bytes": 11606,
+    "bytes": 11879,
     "parts": [
-      "014-000.bin"
+      "015-000.bin"
     ],
-    "sha256": "a28caad7498a5d2fdb7a5c85d646d29cc51ad75401ab461852a159b0c881beee"
+    "sha256": "a5225856a52b91aa2080040142574e6941e8091c87de9e8052560f39d61dbe0a"
   },
   {
     "path": "index.icon.png",
     "bytes": 8666,
     "parts": [
-      "015-000.bin"
+      "016-000.bin"
     ],
     "sha256": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656"
   },
   {
     "path": "index.js",
-    "bytes": 284931,
+    "bytes": 285062,
     "parts": [
-      "016-000.bin"
+      "017-000.bin"
     ],
-    "sha256": "628dc7c14fcf65bb37c57e341102e4071bece0e7e56f06f9ddde57040dc20e3c"
+    "sha256": "b01eb1f73e48aade1f6f305bb90bcd08fa9fdad85dd102fa8c632f4c6695715e"
   },
   {
     "path": "index.pck",
-    "bytes": 92735920,
+    "bytes": 92915068,
     "parts": [
-      "017-000.bin",
-      "017-001.bin",
-      "017-002.bin",
-      "017-003.bin",
-      "017-004.bin"
+      "018-000.bin",
+      "018-001.bin",
+      "018-002.bin",
+      "018-003.bin",
+      "018-004.bin"
     ],
-    "sha256": "2f165cc10b1e47b92822a13e4a0ffd2a36be62d9d72044374840112564e76e4c"
+    "sha256": "13c92689b6e3fba2e402d580f1067cd2466ad446353941b02be056ea66b0a6f5"
   },
   {
     "path": "index.png",
     "bytes": 322465,
     "parts": [
-      "018-000.bin"
+      "019-000.bin"
     ],
     "sha256": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b"
   },
@@ -157,8 +165,8 @@
     "path": "index.wasm",
     "bytes": 39514754,
     "parts": [
-      "019-000.bin",
-      "019-001.bin"
+      "020-000.bin",
+      "020-001.bin"
     ],
     "sha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
   },
@@ -166,7 +174,7 @@
     "path": "librarian-chibi-v1.webp",
     "bytes": 18048,
     "parts": [
-      "020-000.bin"
+      "021-000.bin"
     ],
     "sha256": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af"
   },
@@ -174,7 +182,7 @@
     "path": "Licenses/Fredoka-OFL.txt",
     "bytes": 4388,
     "parts": [
-      "021-000.bin"
+      "022-000.bin"
     ],
     "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
   },
@@ -182,7 +190,7 @@
     "path": "Licenses/Godot-COPYRIGHT.txt",
     "bytes": 100108,
     "parts": [
-      "022-000.bin"
+      "023-000.bin"
     ],
     "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
   },
@@ -190,7 +198,7 @@
     "path": "Licenses/Godot-LICENSE.txt",
     "bytes": 1149,
     "parts": [
-      "023-000.bin"
+      "024-000.bin"
     ],
     "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
   },
@@ -198,7 +206,7 @@
     "path": "Licenses/NotoSansMath-OFL.txt",
     "bytes": 4380,
     "parts": [
-      "024-000.bin"
+      "025-000.bin"
     ],
     "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
   },
@@ -206,7 +214,7 @@
     "path": "Licenses/NotoSansSymbols-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "025-000.bin"
+      "026-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
@@ -214,7 +222,7 @@
     "path": "Licenses/NotoSansSymbols2-OFL.txt",
     "bytes": 4383,
     "parts": [
-      "026-000.bin"
+      "027-000.bin"
     ],
     "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
@@ -222,47 +230,55 @@
     "path": "observatory-config.js",
     "bytes": 297,
     "parts": [
-      "027-000.bin"
+      "028-000.bin"
     ],
     "sha256": "ab1de87d0d011e82bf5139abbd0f6fdb37fe046f91a2e3b88bf4475e1ec3f1e1"
   },
   {
     "path": "observatory.js",
-    "bytes": 41196,
+    "bytes": 44753,
     "parts": [
-      "028-000.bin"
+      "029-000.bin"
     ],
-    "sha256": "57c9496ed09e94313185b0cbb9b91dfe319b1b87260deb754f21d5e96d025d55"
+    "sha256": "ebcb7360346667657ff1f264c0646f9ae7aeee448aaed13688e93f10d07e4243"
   },
   {
     "path": "playtest_privacy.js",
     "bytes": 938,
     "parts": [
-      "029-000.bin"
+      "030-000.bin"
     ],
-    "sha256": "850368c84ddd1ffe05b38ee1775353c81c34e4ea50cc349ea1dad37052b18b1a"
+    "sha256": "fd22c4640673b100eeddba61abd377e55129884970b7f43de1d6763c6b8d1109"
   },
   {
     "path": "privacy.html",
-    "bytes": 7862,
-    "parts": [
-      "030-000.bin"
-    ],
-    "sha256": "57269eadd8929a2b3929f99f5ad209c063362954f49dc983d21c43d083758ec7"
-  },
-  {
-    "path": "release.json",
-    "bytes": 3325,
+    "bytes": 8381,
     "parts": [
       "031-000.bin"
     ],
-    "sha256": "de074d14e0057ea36c946d2c50f6502032cff96245c637d6a163086f526b4e07"
+    "sha256": "eb89f810015a282a46404daf6472542dcddaa50df87f1485ff305e137a3c4f46"
+  },
+  {
+    "path": "release.json",
+    "bytes": 4484,
+    "parts": [
+      "032-000.bin"
+    ],
+    "sha256": "d47b43912769be8708b17e28ef1484c82eb82903206474f334a557d46642d9af"
+  },
+  {
+    "path": "render_recovery.js",
+    "bytes": 1017,
+    "parts": [
+      "033-000.bin"
+    ],
+    "sha256": "ee49f5a04a9a77a18484f2e57c9d7aec948bbb468fdfd6e3a6ff6dfbd292c699"
   },
   {
     "path": "sleeping-trio-v1.webp",
     "bytes": 113090,
     "parts": [
-      "032-000.bin"
+      "034-000.bin"
     ],
     "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }

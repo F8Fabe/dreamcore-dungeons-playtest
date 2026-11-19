@@ -1,14 +1,527 @@
-/* Only the permission choice is read before optional storage is allowed. */
+/* Offline-first, consent-gated playtest transport. No gameplay state is mutated. */
 (() => {
- const key='observatory-privacy-choice',version='2026-11-09.3';
- const manualKey='observatory-manual-report-permission';
- let suspended=false;
- const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
- const stored=()=>read(key);
- const valid=value=>value?.version===version&&typeof value.granted==='boolean'&&Number.isFinite(value.decided_at)&&(!value.granted||value.adult_confirmed===true);
- const ready=()=>window.dreamObservatoryConfig?.privacyNoticeReady===true;
- const choice=()=>{const value=stored();return valid(value)?value:null;};
- const permits=()=>!suspended&&ready()&&choice()?.granted===true;
- const manual=()=>ready()&&read(manualKey)===version;
- window.dreamPlaytestPrivacy=Object.freeze({key,version,manualKey,stored,choice,ready,permits,manual,suspend:value=>{suspended=value;}});
+ 'use strict';
+ const cfg=window.dreamObservatoryConfig||{}, endpoint=(cfg.endpoint||'').replace(/\/$/, '');
+ const privacy=window.dreamPlaytestPrivacy;
+ const canShare=()=>!!endpoint&&privacy?.ready()===true;
+ const erasureKey='observatory-erasure-request',registrationLock='dreamcore-observatory-registration';
+ const erasureUnverified='Online deletion could not be verified. Contact the developer via the privacy notice.';
+ const BUDGET=20*1024*1024, PART=60000, MAX_REPORT=64*1024;
+ const bytes=s=>new TextEncoder().encode(s).length;
+ const uuid=()=>crypto.randomUUID();
+ const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
+ const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
+ let consentRecord=privacy?.choice()??null;
+ let consent=canShare()?consentRecord?.granted??null:null;
+ let erasure=read(erasureKey,null),erasureTask=null,erasureSaved=!!erasure,clearingLocal=false;
+ if(erasure){consent=false;privacy?.suspend(true);}
+ let manualPending=canShare()&&privacy.manual();
+ let renewal=!!consentRecord?.cleanup_pending||!consentRecord&&(read('observatory-consent',null)!==null||!!privacy?.stored());
+ if(renewal||erasure)manualPending=false;
+ const mayUseQueue=()=>!erasure&&!renewal&&canShare()&&(consent===true||manualPending);
+ let identity=null,generation=0,controller=null;
+ let busy=false, stopped=false, retryAt=mayUseQueue()?Number(read('observatory-retry-at',0))||0:0, failures=0, db=null, dbPromise=null, chain=Promise.resolve();
+ let status=erasure?(erasure.blocked?erasureUnverified:'Online deletion pending. Sharing is off.'):'Ready', queueCount=0, gaps=mayUseQueue()?read('observatory-gaps',0):0, lastContext={}, lastSnapshot='', lastConfirmedSnapshot='';
+ const session=uuid(), seenFailures=new Map();
+ const traffic={requests:0,body_bytes:0,uncompressed_bytes:0};
+ const previous=consent===true?read('observatory-session',null):null;
+ let loadingContext=null;
+ const now=()=>Date.now();
+ const requestValue=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+ const validRow=row=>typeof row?.id==='string'&&typeof row.event_id==='string'&&typeof row.data==='string'&&row.data.length<=PART&&Number.isInteger(row.index)&&Number.isInteger(row.count)&&row.count>0&&row.count<=72&&row.index>=0&&row.index<row.count&&Number.isFinite(row.created);
+ const emptyState=()=>({id:'state',rows:0,bytes:0,pending:0});
+ function database(){
+  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+   const r=indexedDB.open('dreamcore-observatory-v1',2);
+   r.onupgradeneeded=()=>{
+    const d=r.result,store=d.objectStoreNames.contains('outbox')?r.transaction.objectStore('outbox'):d.createObjectStore('outbox',{keyPath:'id'});
+    if(!store.indexNames.contains('delivery'))store.createIndex('delivery',['delivery','created','index']);
+    if(!store.indexNames.contains('event'))store.createIndex('event','event_id');
+    const meta=d.createObjectStore('meta',{keyPath:'id'}),state=emptyState();let lost=0;
+    const cursor=store.openCursor();cursor.onsuccess=()=>{
+     const c=cursor.result;if(!c){meta.put(state);if(lost){gaps+=lost;save('observatory-gaps',gaps);}return;}
+     const row=c.value;if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+    };
+   };
+   r.onblocked=()=>{dbPromise=null;reject(Error('Close other game tabs to update local playtest storage'));};
+   r.onerror=()=>{dbPromise=null;reject(r.error);};
+   r.onsuccess=()=>{db=r.result;db.onversionchange=()=>{db.close();dbPromise=null;};resolve(db);};
+  });
+  return dbPromise;
+ }
+ async function outbox(fn){
+  const d=await database();return new Promise((resolve,reject)=>{
+   const t=d.transaction(['outbox','meta'],'readwrite');let value,failure;
+   t.oncomplete=()=>resolve(value);t.onerror=t.onabort=()=>reject(failure||t.error||Error('Storage aborted'));
+   Promise.resolve(fn(t.objectStore('outbox'),t.objectStore('meta'))).then(v=>{value=v;}).catch(e=>{failure=e;try{t.abort();}catch{reject(e);}});
+  });
+ }
+ async function stateFor(store,meta){
+  let state=await requestValue(meta.get('state'));const count=await requestValue(store.count());
+  if(state&&state.rows===count)return {state,lost:0};
+  // Repair only after an unexpected count/missing metadata. Normal enqueue/flush
+  // never loads all acknowledged history. Cursor repair bounds retained memory.
+  state=emptyState();let lost=0;
+  await new Promise((resolve,reject)=>{const r=store.openCursor();r.onerror=()=>reject(r.error);r.onsuccess=()=>{
+   const c=r.result;if(!c){resolve();return;}const row=c.value;
+   if(!validRow(row)){c.delete();lost++;}else{row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;c.update(row);}c.continue();
+  };});return {state,lost};
+ }
+ const pendingRange=()=>IDBKeyRange.bound([0],[1],false,true);
+ async function change(put=[],remove=[],guard=()=>true){
+  const receipt=await outbox(async(store,meta)=>{
+   if(!guard())throw Error('Stale upload');const repaired=await stateFor(store,meta),state=repaired.state;let lost=repaired.lost;
+   const subtract=row=>{state.rows--;state.bytes-=row.size;if(!row.acked)state.pending--;};
+   for(const id of new Set(remove)){const old=await requestValue(store.get(id));if(old){subtract(old);store.delete(id);}}
+   for(const row of new Map(put.map(r=>[r.id,r])).values()){
+    const old=await requestValue(store.get(row.id));if(old?.acked&&!row.acked)continue;
+    if(old)subtract(old);row.size=bytes(row.data);row.delivery=row.acked?1:0;state.rows++;state.bytes+=row.size;if(!row.acked)state.pending++;store.put(row);
+   }
+   // Evict whole events, oldest acknowledged first, then oldest pending events.
+   while(state.bytes>BUDGET){
+    let first=await requestValue(store.index('delivery').openCursor(IDBKeyRange.bound([1],[2],false,true)));
+    if(!first)first=await requestValue(store.index('delivery').openCursor(pendingRange()));
+    if(!first)break;
+    const parts=await requestValue(store.index('event').getAll(first.value.event_id));
+    if(parts.some(row=>!row.acked))lost++;
+    for(const row of parts){subtract(row);store.delete(row.id);}
+   }
+   if(!guard())throw Error('Stale upload');meta.put(state);return {state,lost};
+  });
+  queueCount=receipt.state.pending;if(receipt.lost){gaps+=receipt.lost;save('observatory-gaps',gaps);}return receipt;
+ }
+ async function pending(){
+  const receipt=await change();if(!receipt.state.pending)return [];
+  const d=await database(),t=d.transaction('outbox','readonly');
+  return requestValue(t.objectStore('outbox').index('delivery').getAll(pendingRange(),4));
+ }
+ const all=async()=>{await change();const d=await database(),t=d.transaction('outbox','readonly');return requestValue(t.objectStore('outbox').getAll());};
+ async function clearOutbox(){
+  if(dbPromise)await outbox((store,meta)=>{store.clear();meta.put(emptyState());});
+  else await new Promise((resolve,reject)=>{
+   const r=indexedDB.deleteDatabase('dreamcore-observatory-v1');r.onsuccess=resolve;r.onerror=()=>reject(r.error);
+   r.onblocked=()=>reject(Error('Close other game tabs to clear local playtest data'));
+  });
+  queueCount=0;
+ }
+ function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
+ function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',arena:lastContext.arena,kind,data};}
+ function enqueue(events,oneShot=false){
+   if(!mayUseQueue()||(consent!==true&&!oneShot)||stopped)return Promise.resolve();
+  const epoch=generation;
+  chain=chain.then(async()=>{
+    if(stopped||!mayUseQueue()||epoch!==generation||(!oneShot&&consent!==true))return;
+   const rows=[];
+   for(const raw of events){
+     const e={...raw,build:raw.build||document.documentElement.dataset.build||'local',received_client_at:now(),
+      privacy:{notice_version:privacy.version,permission:oneShot?'manual_report':'automatic',consented_at:oneShot?raw.data.consented_at:consentRecord.decided_at,adult_confirmed:true}};
+    lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version,arena:e.arena};
+    if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
+    const text=JSON.stringify(e), count=Math.ceil(text.length/PART);
+    if(count>72||bytes(text)>4*1024*1024){gaps++;continue;}
+    for(let index=0;index<count;index++){
+     const data=text.slice(index*PART,(index+1)*PART), id=e.id+':'+index;
+     rows.push({id,event_id:e.id,index,count,data,created:now(),size:bytes(data),oneShot,run_id:e.run_id,snapshot_id:e.kind==='snapshot'?e.data.snapshot_id:''});
+    }
+   }
+   await change(rows);save('observatory-gaps',gaps);
+   if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,loading:loadingContext,at:now()});
+   return true;
+  }).catch(()=>{status='Local storage unavailable; you can keep playing';gaps++;return false;});
+  if(events.some(e=>["attempt_end","run_end","failure"].includes(e.kind)))chain.then(()=>flush());
+  return chain;
+ }
+ async function register(){
+  const create=async()=>{
+   if(!mayUseQueue()||read(erasureKey,null))throw Error('Sharing is off');
+   identity=read('observatory-identity',null);
+   if(identity)return identity;
+   const r=await fetch(endpoint+'/v1/installations',{method:'POST',headers:{'Content-Type':'application/json','X-Privacy-Notice':privacy.version},body:'{}',signal:controller?.signal});
+   if(!r.ok)throw Error('Registration '+r.status);
+   const value=await r.json();if(!save('observatory-identity',value))throw Error('Cannot retain upload identity');identity=value;return value;
+  };
+  return navigator.locks?.request?navigator.locks.request(registrationLock,create):create();
+ }
+ const publicScoreNotice=privacy?.version;
+ let combinedConsentRequestStatus='idle';
+ function requestCombinedConsent(){
+  if(publicHighscores()){combinedConsentRequestStatus='granted';return;}
+  combinedConsentRequestStatus='pending';open();
+ }
+ const publicHighscores=()=>consent===true&&read('observatory-public-scores',{}).granted===true&&!!read('observatory-public-scores',{}).token&&read('observatory-public-scores',{}).version===publicScoreNotice&&read('observatory-public-scores',{}).epoch===consentRecord?.decided_at;
+ function dirtyProfile(){save('observatory-profile-revision',Math.max(now(),Number(read('observatory-profile-revision',0))+1));return save('observatory-profile-dirty',true);}
+ async function syncProfile(auth){
+  if(!consent||!read('observatory-profile-dirty',false))return;
+  const name=read('dreamcore-profile-name',''),revision=read('observatory-profile-revision',0),scoreEpoch=publicHighscores()?read('observatory-public-scores',{}).token||'':'';
+  const response=await fetch(endpoint+'/v1/profile',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+auth.token,'X-Installation':auth.id},body:JSON.stringify({display_name:name,public_score_epoch:scoreEpoch,sharing_notice:privacy.version,revision}),signal:AbortSignal.timeout(10000)});
+  if(!response.ok)throw Error('Profile update unavailable');
+  const result=await response.json();save('observatory-profile',result);
+  if(revision===read('observatory-profile-revision',0)){save('observatory-profile-dirty',false);status='Profile and public score preference saved online.';}
+ }
+ async function setProfileName(value){
+  const name=String(value).trim();
+  if(Array.from(name).length>32||/[\p{Cc}\p{Cf}]/u.test(name))throw Error('Use at most 32 visible characters.');
+  if(!save('dreamcore-profile-name',name)||!dirtyProfile())throw Error('Could not save your name.');
+  if(consent){try{await syncProfile(await register());}catch{return 'Name saved on this device. Online update pending.';}}
+  return consent?'Profile name saved.':'Name saved on this device. Enable playtest sharing to use it online.';
+ }
+ let flushTask=null;
+ function flush(){
+  if(!flushTask)flushTask=flushOnce().finally(()=>{flushTask=null;});
+  return flushTask;
+ }
+ let retiredLocalCleaned=false;
+ async function cleanupRetiredLocal(){
+  if(retiredLocalCleaned||!mayUseQueue())return;
+  const groups=new Map();
+  for(const row of await all()){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
+  const remove=[];
+  for(const rows of groups.values()){
+   rows.sort((a,b)=>a.index-b.index);
+   if(rows.length!==rows[0].count)continue;
+   try{const e=JSON.parse(rows.map(r=>r.data).join(''));
+    if(['run_start','run_origin','item','snapshot','attempt_start','attempt_end','run_end','offers','action','abandon'].includes(e.kind)&&e.arena?.version!==1)remove.push(...rows.map(r=>r.id));
+   }catch{/* Incomplete/unknown diagnostic payloads are not deletion candidates. */}
+  }
+  if(remove.length)await change([],remove);
+  retiredLocalCleaned=true;
+ }
+ async function flushOnce(){
+   if(busy||stopped||!mayUseQueue()||now()<retryAt)return;
+  busy=true;const epoch=generation;controller=new AbortController();const activeController=controller;const deadline=setTimeout(()=>activeController.abort(),15000);
+  try{
+    await chain;if(epoch!==generation||!mayUseQueue())return;
+    await cleanupRetiredLocal();
+    const rows=await pending();if(!rows.length){if(consent&&read('observatory-profile-dirty',false))try{await syncProfile(await register());}catch{}clearManualPermission();return;}
+   const batch=[];let payload='';
+   for(const row of rows){
+    if(stopped||(!consent&&!row.oneShot))continue;
+    const part={id:row.id,event_id:row.event_id,index:row.index,count:row.count,data:row.data,gaps};
+    const next=JSON.stringify({parts:[...batch.map(x=>x.part),part]});
+    if(bytes(next)>384*1024){if(batch.length)break;await change([],[row.id]);gaps++;continue;}
+    batch.push({row,part});payload=next;if(batch.length===4)break;
+   }
+   if(!batch.length||epoch!==generation)return;
+    const auth=await register();
+    try{await syncProfile(auth);}catch{}
+   let wire=new TextEncoder().encode(payload),contentType='application/json';
+   if(typeof CompressionStream==='function'){
+    try{const compressed=new Uint8Array(await new Response(new Blob([wire]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+     if(compressed.length<wire.length){wire=compressed;contentType='application/gzip';}
+    }catch{/* Plain JSON remains bounded and valid on older browsers. */}
+   }
+   if(epoch!==generation||stopped||!mayUseQueue()||read(erasureKey,null))return;
+   traffic.requests++;traffic.body_bytes+=wire.byteLength;traffic.uncompressed_bytes+=bytes(payload);
+   const r=await fetch(endpoint+'/v2/batch',{method:'POST',headers:{'Content-Type':contentType,'Authorization':'Bearer '+auth.token,'X-Installation':auth.id,'X-Privacy-Notice':privacy.version},body:wire,signal:activeController.signal});
+   if(epoch!==generation)return;
+   if(!r.ok){
+    const problem=await r.json().catch(()=>({}));
+    const retryHeader=r.headers.get('Retry-After'),numericDelay=Number(retryHeader);
+    const delay=Number.isFinite(numericDelay)?numericDelay:(Date.parse(retryHeader)-now())/1000;
+    if(r.status===401){identity=null;save('observatory-identity',null);}
+    // A batch rejection is not proof that individual queued events are invalid.
+    retryAt=now()+(Number.isFinite(delay)&&delay>0?delay*1000:Math.min(3600000,1000*2**Math.min(12,++failures)));
+    if(['daily_read_limit','daily_write_limit'].includes(problem.error)){retryAt=Math.max(retryAt,Math.min(now()+86400000,Number(problem.retry_at)||0));save('observatory-retry-at',retryAt);}
+    throw Error('Upload '+r.status);
+   }
+   const ack=await r.json();if(!Array.isArray(ack.parts))throw Error('Missing acknowledgement');
+   const saved=[],rejected=[],delivered=[];
+   for(const {row} of batch){
+    const matches=ack.parts.filter(a=>a.id===row.id);if(matches.length!==1)throw Error('Missing or duplicate acknowledgement');
+    const result=matches[0];
+    if(result.status===200){if(result.retired||row.oneShot&&!consent)delivered.push(row.id);else saved.push({...row,acked:true});if(result.complete&&row.snapshot_id)lastConfirmedSnapshot=row.snapshot_id;}
+    else if([400,413,422].includes(result.status))rejected.push(row.id);
+    else throw Error('Unconfirmed part');
+   }
+   if(epoch!==generation)return;
+   await change(saved,[...rejected,...delivered],()=>epoch===generation&&!stopped);
+   if(epoch!==generation)return;
+   gaps+=rejected.length;save('observatory-gaps',gaps);
+   failures=0;retryAt=0;save('observatory-retry-at',0);status=rejected.length?'An upload was rejected':'Sent';
+   if(!queueCount)clearManualPermission();
+
+  }catch(_){if(epoch!==generation||!mayUseQueue())return;status=Number(read('observatory-retry-at',0))>now()?`Uploads paused until ${new Date(retryAt).toLocaleString()}. Daily upload-service limit reached.`:'Waiting for a connection or the upload service';retryAt=Math.max(retryAt,now()+Math.min(3600000,1000*2**Math.min(12,++failures)));}
+   finally{clearTimeout(deadline);busy=false;controller=null;if(queueCount>0&&!stopped&&mayUseQueue())setTimeout(flush,Math.max(failures?5000:1000,retryAt-now()));}
+ }
+ function clearManualPermission(){
+  if(manualPending){manualPending=false;try{localStorage.removeItem(privacy.manualKey);}catch{}}
+ }
+ function showErasureStatus(message){
+  status=message;
+  const notice=document.querySelector('#observatory-panel [role="status"]');if(notice)notice.textContent=message;
+  for(const button of document.querySelectorAll('#observatory-panel [data-sharing-action]'))button.disabled=!!erasure||!canShare();
+ }
+ function queueErasure(){
+  if(erasure)return;
+  const target=read('observatory-identity',null);if(!target?.id||!target?.token)return;
+  erasure={installation:target.id,requested_at:now(),retry_at:0};erasureSaved=save(erasureKey,erasure);
+  showErasureStatus(erasureSaved?'Online deletion pending. Sharing is off.':'Deletion could not be saved for later. Keep this page open to retry.');
+ }
+ function retryErasure(manual=false){
+  if(erasureTask)return erasureTask;
+  if(clearingLocal||!erasure||!endpoint||navigator.onLine===false||now()<(erasure.retry_at||0)||(!manual&&erasure.blocked))return Promise.resolve();
+  const attempt=async()=>{
+   if(erasureSaved){erasure=read(erasureKey,null);if(!erasure)return;}
+   if(!erasure||(!manual&&erasure.blocked)||now()<(erasure.retry_at||0))return;
+   const request=erasure,target=read('observatory-identity',null);
+   if(target?.id!==erasure.installation||!target?.token){
+    erasure.blocked=true;erasureSaved=save(erasureKey,erasure);
+    showErasureStatus(erasureUnverified);return;
+   }
+   const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),15000);
+   try{
+    const r=await fetch(endpoint+'/v1/installation',{method:'DELETE',headers:{Authorization:'Bearer '+target.token,'X-Installation':target.id},signal:controller.signal});
+    const result=await r.json().catch(()=>({}));
+    if(erasure!==request)return;
+    if(!r.ok||result.deleted!==true){
+     const header=r.headers.get('Retry-After'),seconds=Number(header);
+     const retry=header&&(Number.isFinite(seconds)?now()+seconds*1000:Date.parse(header));
+     erasure.retry_at=Math.max(now(),Number(retry)||0,Number(result.retry_at)||0);
+     erasure.blocked=[401,403,404].includes(r.status);
+     erasureSaved=save(erasureKey,erasure);
+     showErasureStatus(erasure.blocked?erasureUnverified:'Online deletion pending. It will be retried while the game page is open.');return;
+    }
+    if(read('observatory-identity',null)?.id===target.id)save('observatory-identity',null);
+    identity=null;erasure=null;erasureSaved=false;try{localStorage.removeItem(erasureKey);}catch{}
+    showErasureStatus(renewal?'Online data deleted; local cleanup incomplete. Close other game tabs and retry.':'Collected data deleted');
+   }catch{if(erasure===request)showErasureStatus(erasureSaved?'Online deletion pending. It will be retried when you reconnect.':'Deletion could not be saved for later. Keep this page open to retry.');}
+   finally{clearTimeout(deadline);}
+  };
+  erasureTask=(navigator.locks?.request?navigator.locks.request(registrationLock,attempt):attempt()).finally(()=>{erasureTask=null;});
+  return erasureTask;
+ }
+ async function setConsent(value,{forceClear=false,adultConfirmed=false}={}){
+  if(value&&!canShare())throw Error('Privacy notice is not available');
+  if(value&&adultConfirmed!==true)throw Error('Playtest sharing is for adults only');
+  if(value&&(erasure||read(erasureKey,null)))throw Error('Online deletion is still pending');
+  if(privacy.choice()?.cleanup_pending)renewal=true;
+  const withdrawing=!value&&(forceClear||consent===true||(!consentRecord&&(read('observatory-consent',null)===true||privacy.stored()?.granted===true)));
+  const hadQueue=renewal||mayUseQueue()||!!dbPromise;
+  generation++;controller?.abort();consent=false;privacy.suspend(true);
+  if(read('observatory-consent',null)!==null)save('observatory-consent',false);
+  const record={version:privacy.version,granted:false,decided_at:now()};
+  if((!value||renewal)&&(hadQueue||forceClear))record.cleanup_pending=true;
+  const saved=save(privacy.key,record);consentRecord=record;
+  if(!saved)try{localStorage.removeItem(privacy.key);}catch{}
+  clearManualPermission();
+  if(withdrawing){clearingLocal=true;queueErasure();}
+  await chain;
+  if(!value||renewal){
+   let cleared=window.dreamDiagnostics?.clearPlaytestHistory?.()!==false;
+   lastContext={};lastSnapshot='';lastConfirmedSnapshot='';gaps=0;retryAt=0;
+   for(const key of ['observatory-session','observatory-gaps','observatory-retry-at'])try{localStorage.removeItem(key);}catch{cleared=false;}
+   if(hadQueue||forceClear)try{await clearOutbox();}catch{cleared=false;}
+   if(!cleared){clearingLocal=false;renewal=true;record.cleanup_pending=true;save(privacy.key,record);status='Local cleanup incomplete. Close other game tabs and retry.';if(!forceClear&&erasure)void retryErasure();return false;}
+  }
+  renewal=false;
+  clearingLocal=false;
+  if(record.cleanup_pending){delete record.cleanup_pending;save(privacy.key,record);}
+  if(value){
+   if(!hadQueue)window.dreamDiagnostics?.clearPlaytestHistory?.();
+   record.granted=true;record.adult_confirmed=true;record.decided_at=now();
+   if(!save('observatory-public-scores',{version:publicScoreNotice,granted:true,token:uuid(),epoch:record.decided_at}))throw Error('Cannot retain shared score permission');
+   if(!save(privacy.key,record))throw Error('Cannot retain consent choice');
+   consent=true;privacy.suspend(false);dirtyProfile();
+   if(combinedConsentRequestStatus==='pending')combinedConsentRequestStatus='granted';
+   enqueue([localEvent('consent',{version:2,notice_version:record.version,consented_at:record.decided_at})]);flush();
+  }
+  if(!value&&!forceClear&&erasure)void retryErasure();
+  return true;
+ }
+ async function deleteData(){
+  stopped=true;
+  try{
+   const localCleared=await setConsent(false,{forceClear:true});
+   if(!erasure){status=localCleared?'Local playtest data cleared. If you previously shared from another browser, use that browser or contact the developer.':'Local cleanup incomplete. Close other game tabs and retry.';return;}
+   await retryErasure(true);
+  }catch{status='Online deletion pending; please try again';}
+  finally{stopped=false;}
+ }
+ function loading(phase,total){
+  if(!['awaiting_download','download_deferred','downloading','game_started','download_failed'].includes(phase))return;
+  loadingContext={phase,total_bytes:Number.isSafeInteger(total)&&total>=0?total:0};
+  if(consent===true)save('observatory-session',{id:session,closed:false,context:lastContext,loading:loadingContext,at:now()});
+  // An explicit decision to wait is a session event, never a failure report.
+  if(phase==='download_deferred')enqueue([localEvent('leave',{reason:'download_deferred',loading:loadingContext})]);
+ }
+ function failure(kind,message,manual=false,adultConfirmed=false){
+  if(erasure||stopped)return false;
+  if(consent!==true&&!manual)return;
+  if(manual&&adultConfirmed!==true)return false;
+  const text=serializeError(message), signature=kind+':'+text;
+  const count=(seenFailures.get(signature)||0)+1;
+  if(seenFailures.size>=32&&!seenFailures.has(signature))return;
+  seenFailures.set(signature,count);if(count!==1&&count%100!==0)return;
+  if(manual){
+   if(!canShare()||renewal||!save(privacy.manualKey,privacy.version))return false;
+   manualPending=true;
+  }
+  let diagnostic={};try{diagnostic=JSON.parse(window.dreamDiagnostics?.report()||'{}');}catch{}
+  // Only an allowlisted bounded projection is transmitted, never arbitrary local diagnostics.
+  const current=(kind==='unclean_session'?diagnostic.previous:diagnostic.current)||{};
+  const data={kind,message:text,count,device:{width:innerWidth,height:innerHeight,userAgent:String(navigator.userAgent||'').slice(0,300)},previous_session_id:kind==='unclean_session'?previous?.id:undefined,snapshot_id:lastSnapshot,confirmed_snapshot_id:lastConfirmedSnapshot,loading:kind==='unclean_session'?previous?.loading:loadingContext,engine:current.engine||{},events:(current.events||[]).slice(-20),description:manual?text:''};
+  let cleaned=JSON.parse(JSON.stringify(data).replace(/https?:\/\/[^\s"\\]+/g,'[url]'));
+  if(bytes(JSON.stringify(cleaned))>MAX_REPORT)cleaned={kind,message:text,count,snapshot_id:lastSnapshot,truncated:true};
+  // A browser may omit pagehide on close, reload, suspension or loading abort.
+  // Retain context as a lifecycle observation, never promote it to an error.
+  if(kind==='unclean_session')cleaned.reason='unobserved_session_end';
+  if(manual){cleaned.notice_version=privacy.version;cleaned.consented_at=now();}
+  const reportEvent=localEvent(kind==='unclean_session'?'leave':'failure',cleaned);
+  if(current.engine?.arena?.version===1){reportEvent.arena=current.engine.arena;reportEvent.run_id=current.engine.run_id||reportEvent.run_id;reportEvent.attempt_id=current.engine.attempt_id||reportEvent.attempt_id;reportEvent.rules_hash=current.engine.rules_hash||reportEvent.rules_hash;}
+  enqueue([reportEvent],manual).then(flush);
+  return true;
+ }
+ function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ async function exportLocal(){
+  await chain;const rows=await all(), groups=new Map(),events=[];
+  for(const row of rows){if(!groups.has(row.event_id))groups.set(row.event_id,[]);groups.get(row.event_id).push(row);}
+  for(const parts of groups.values()){parts.sort((a,b)=>a.index-b.index);if(parts.length===parts[0].count)try{events.push(JSON.parse(parts.map(p=>p.data).join('')));}catch{}}
+  download({schema:1,events,gaps,scope:'bounded_local_history'},'dreamcore-playtest.json');
+ }
+ function open(){
+  document.getElementById('observatory-panel')?.remove();
+  const first=consent===null||combinedConsentRequestStatus==='pending',previousFocus=document.activeElement;
+  const panel=document.createElement('dialog');panel.id='observatory-panel';panel.lang='en';
+  panel.setAttribute('aria-labelledby','observatory-title');panel.setAttribute('aria-describedby','observatory-intro');
+  const css=document.createElement('style');css.textContent=`
+   #observatory-panel{box-sizing:border-box;width:min(540px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:28px;border:1px solid #74638e;border-radius:22px;background:#201d32;color:#f4efff;font:16px/1.55 system-ui;box-shadow:0 24px 90px #0008;color-scheme:dark}
+   #observatory-panel::backdrop{background:#100f20c9}
+   #observatory-panel *{box-sizing:border-box}#observatory-panel h2{font-size:26px;line-height:1.2;margin:8px 0 16px}#observatory-panel p{margin:12px 0;color:#d3cadd}#observatory-panel .eyebrow{color:#bea8e5;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+   #observatory-panel .choices{display:grid;gap:10px;margin-top:22px}#observatory-panel button{font:inherit;cursor:pointer;min-height:48px;border:1px solid #9380af;border-radius:12px;padding:11px 16px;background:#39304f;color:#fff;text-align:center}#observatory-panel button:hover{background:#514267}#observatory-panel button:focus-visible,#observatory-panel summary:focus-visible,#observatory-panel textarea:focus-visible{outline:3px solid #dec4ff;outline-offset:3px}#observatory-panel button:disabled{opacity:.6;cursor:wait}
+   #observatory-panel details{margin-top:16px;border-top:1px solid #50445e;padding-top:14px}#observatory-panel summary{cursor:pointer;color:#dcc9f2}#observatory-panel ul{padding-left:22px;color:#d3cadd}#observatory-panel .small{font-size:13px;color:#b9afc8}#observatory-panel textarea{display:block;width:100%;min-height:100px;margin:12px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:12px;color:#fff;font:inherit}#observatory-panel .tools{display:grid;gap:10px;margin-top:14px}
+   #observatory-profile-name{display:block;box-sizing:border-box;width:100%;min-height:48px;margin:8px 0;background:#171423;border:1px solid #9380af;border-radius:10px;padding:10px;color:#fff;font:inherit}
+   #observatory-panel label:has(#observatory-public-scores){display:block;margin:16px 0;line-height:1.5}
+   @media(max-width:420px){#observatory-panel{padding:22px}#observatory-panel h2{font-size:24px}}
+  `;panel.append(css);
+  const add=(tag,text,parent=panel)=>{const n=document.createElement(tag);if(text)n.textContent=text;parent.append(n);return n;};
+  const close=()=>{if(combinedConsentRequestStatus==='pending')combinedConsentRequestStatus='cancelled';panel.close();panel.remove();if(previousFocus?.isConnected)previousFocus.focus();};
+  const button=(text,fn,parent)=>{const b=add('button',text,parent);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch{notice.textContent='Something went wrong. Please try again.';}finally{b.disabled=false;}};return b;};
+  add('div','Dreamcore · Sharing').className='eyebrow';
+  add('h2',first?(renewal?'Sharing has changed':'Share your dreams?'):'Playtest data & public scores').id='observatory-title';
+  add('p','One optional choice: share playtest runs and error reports with the developer, and publish your future completed Nightmare scores.').id='observatory-intro';
+  add('p','Public scores show your nickname or Player number, heroine and active clear time. Your public results can be linked together.').className='small';
+  add('p','Saved scores stay private until you press Publish saved highscores. Re-enabling sharing does not republish removed scores.').className='small';
+  add('p','Sharing is optional and never affects gameplay. Change your choice anytime in Settings → Playtest & feedback.').className='small';
+  add('p','Playtest participation is for adults aged 18 or older.').className='small';
+  const privacyLink=add('a','Privacy notice');privacyLink.href='privacy.html';privacyLink.target='_blank';privacyLink.rel='noopener';
+  const details=add('details');add('summary','What gets shared?',details);
+  const list=add('ul',null,details);
+  for(const text of ['Arena difficulty, heroine, progress, choices, skills, worn equipment and results, including saved gear and victory-build decisions.','Error reports with game and browser information.','A random browser ID links your reports. No name, email or player account needed.','Nightmare highscores are public: nickname or Player number, heroine, tier, clear time and original rules version.'])add('li',text,list);
+  add('p','Playtest data is stored privately on Cloudflare for 90 days; reference runs may be kept longer. Published Nightmare scores are visible to other players.',details);
+  add('p','Turning sharing off clears local playtest history and requests deletion of already uploaded data from this browser. If you are offline, the request is retried when the game is open and connected.',details);
+  if(renewal)add('p','Your previous permission covered playtest data separately. Please confirm the expanded choice before any further sharing. Existing saved scores are not published by this confirmation.',details);
+  const notice=add('p');notice.className='small';notice.setAttribute('role','status');
+  if(erasure)notice.textContent=status;
+  else if(!canShare())notice.textContent='Sharing is not available in this version yet.';
+  const choices=add('div');choices.className='choices';
+  function adultCheck(id,parent){
+   const label=add('label',null,parent),check=add('input',null,label);check.type='checkbox';check.id=id;
+   label.append(' I confirm I am 18 or older.');return check;
+  }
+  function confirmed(check){if(check.checked)return true;notice.textContent='Please confirm you are 18 or older to share playtest data.';check.focus();return false;}
+  if(first){
+   const adult=adultCheck('observatory-auto-adult',choices);
+   button('Share playtest data & future scores',async()=>{if(!confirmed(adult))return;if(await setConsent(true,{adultConfirmed:true}))close();else notice.textContent=status;},choices).disabled=!canShare();
+   button('Not now',async()=>{if(combinedConsentRequestStatus!=='pending')await setConsent(false);close();},choices);
+  }else{
+   add('p',consent?'Automatic sharing is on.':'Automatic sharing is off.');
+   const adult=consent?null:adultCheck('observatory-auto-adult',choices);
+   const toggle=button(consent?'Turn sharing off':'Turn sharing on',async()=>{if(adult&&!confirmed(adult))return;const ok=await setConsent(!consent,{adultConfirmed:!!adult?.checked});if(ok)open();else notice.textContent=status;},choices);
+   if(!consent){toggle.dataset.sharingAction='';toggle.disabled=!!erasure||!canShare();}
+   const profile=add('details');add('summary','Profile name & public highscores',profile);
+   const nameLabel=add('label','Profile name (optional)',profile),nameInput=add('input',null,nameLabel);
+   nameInput.id='observatory-profile-name';nameInput.type='text';nameInput.maxLength=64;nameInput.value=read('dreamcore-profile-name','');nameInput.placeholder='Leave empty for Player '+(read('observatory-profile',{}).player_number||'N');
+   add('p','Use a nickname, not personal information. Names are not unique. Without a name, your assigned Player number is shown.',profile);
+   button('Save profile name',async()=>{notice.textContent=await setProfileName(nameInput.value);},profile);
+   add('p','Playtest data and future public Nightmare scores use the same sharing choice above. Publish older saved scores from Highscores → Saved.',profile).className='small';
+   button('Back to the game',close,choices);
+   const tools=add('details');add('summary','Manage saved data',tools);
+   add('p',`${queueCount} upload parts pending · ${status}${gaps?' · Some records may be missing':''}`,tools).className='small';
+   const actions=add('div',null,tools);actions.className='tools';
+   button('Download a local copy',exportLocal,actions);
+   button(erasure?'Retry online deletion':'Delete my collected data',async()=>{if(!erasure&&!window.confirm('Delete your collected playtest data and turn sharing off?'))return;await deleteData();open();document.querySelector('#observatory-panel [role="status"]').textContent=status;},actions);
+   const report=add('details');add('summary','Report a problem',report);
+   add('p','This sends your description and technical context once, even if automatic sharing is off.',report).className='small';
+   const input=add('textarea',null,report);input.placeholder='What happened? Please leave out personal information.';input.setAttribute('aria-label','Problem description');input.maxLength=2000;
+   const reportAdult=adultCheck('observatory-report-adult',report);
+   const send=button('Send this report',()=>{if(!confirmed(reportAdult))return;if(!input.value.trim()){notice.textContent='Please briefly describe what happened.';input.focus();return;}if(!failure('manual',input.value,true,true)){notice.textContent='Report could not be queued.';return;}notice.textContent='Thank you! Your report will be sent when a connection is available.';input.value='';reportAdult.checked=false;},report);
+   send.dataset.sharingAction='';send.disabled=!!erasure||!canShare();
+  }
+  panel.addEventListener('cancel',e=>{e.preventDefault();if(first&&combinedConsentRequestStatus!=='pending')setConsent(false).then(close);else close();});
+  document.body.append(panel);panel.showModal();
+ }
+
+ // Transient request state only. The game's atomic profile owns the durable score queue.
+ const nightmareScoreReceipts={},nightmareFlights=new Set(),nightmareAttempts=new Map();
+ function scoreReceipt(row,status,reason=''){
+  nightmareScoreReceipts[row.request_id]={epoch:row.epoch,status,reason};
+  const ids=Object.keys(nightmareScoreReceipts);if(ids.length>64)delete nightmareScoreReceipts[ids[0]];
+ }
+ async function publishNightmareScore(row){
+  if(!row||typeof row.request_id!=='string'||typeof row.epoch!=='string'||!publicHighscores()||row.epoch!==read('observatory-public-scores',{}).token)return;
+  if(nightmareFlights.has(row.request_id))return;
+  const prior=nightmareScoreReceipts[row.request_id];if(prior?.epoch===row.epoch&&['published','rejected'].includes(prior.status))return;
+  const attempt=nightmareAttempts.get(row.request_id)||{count:0,after:0};if(now()<attempt.after)return;
+  const epoch=row.epoch,token=generation,consentedAt=consentRecord.decided_at;
+  const valid=()=>token===generation&&publicHighscores()&&read('observatory-public-scores',{}).token===epoch;
+  const retry=(reason,response=null,paused=false)=>{
+   const header=response?.headers.get('Retry-After'),seconds=Number(header);
+   const retryTime=header?(Number.isFinite(seconds)?now()+seconds*1000:Date.parse(header)):0;
+   attempt.count++;attempt.after=paused?Infinity:Math.max(Number(retryTime)||0,now()+Math.min(300000,2000*2**Math.min(attempt.count,7)));
+   nightmareAttempts.set(row.request_id,attempt);if(nightmareAttempts.size>64)nightmareAttempts.delete(nightmareAttempts.keys().next().value);
+   scoreReceipt(row,'retry',reason);
+  };
+  nightmareFlights.add(row.request_id);
+  try{
+   const auth=await register();await syncProfile(auth);if(!valid())return;
+   const result={};for(const key of ['result_id','run_id','rules_hash','rules_version','build','hero_id','class_id','nightmare_tier','clear_seconds','completed_at','evidence'])result[key]=row[key];
+   const body=JSON.stringify({request_id:row.request_id,public_score_epoch:epoch,results:[result],privacy:{notice_version:privacy.version,adult_confirmed:true,permission:'automatic',consented_at:consentedAt}});
+   if(bytes(body)>32768){scoreReceipt(row,'rejected','Result exceeds upload size limit.');return;}
+   const response=await fetch(endpoint+'/v1/nightmare-results',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+auth.token,'X-Installation':auth.id,'X-Privacy-Notice':privacy.version},body,signal:AbortSignal.timeout(10000)});
+   const payload=await response.json().catch(()=>null);if(!valid())return;
+   if([400,413,422].includes(response.status)){scoreReceipt(row,'rejected',String(payload?.error||'Invalid result.'));return;}
+   if([401,403,409].includes(response.status)){retry(String(payload?.error||'Publication consent must be renewed.'),response,true);return;}
+   if(response.status!==200){retry('Upload pending. Will retry when connected.',response);return;}
+   const ack=payload?.results?.find(x=>x.result_id===row.result_id&&x.request_id===row.request_id);
+   if(!ack||!['published','rejected'].includes(ack.status)){retry('Waiting for a confirmed server receipt.');return;}
+   scoreReceipt(row,ack.status,String(ack.error||''));nightmareAttempts.delete(row.request_id);
+  }catch{if(valid())retry('Offline or upload interrupted. Will retry.');}
+  finally{nightmareFlights.delete(row.request_id);}
+ }
+ const receipts={},receiptPending=new Set();
+ function enqueueReceipt(event){
+  if(receipts[event.id]||receiptPending.has(event.id)||!consent||event.consent_epoch!==consentRecord?.decided_at)return;
+  receiptPending.add(event.id);
+  enqueue([event]).then(ok=>{if(ok){receipts[event.id]=true;const keys=Object.keys(receipts);if(keys.length>64)delete receipts[keys[0]];}receiptPending.delete(event.id);});
+ }
+ window.dreamObservatory={publishNightmareScore,nightmareScoreReceipts,get nightmarePublicationReady(){return !!privacy&&privacy.ready()===true;},get publicHighscores(){return publicHighscores();},get publicScoreEpoch(){return publicHighscores()?read('observatory-public-scores',{}).token||'':'';},requestCombinedConsent,get combinedConsentRequestStatus(){return combinedConsentRequestStatus;},setProfileName,get profileName(){return read('dreamcore-profile-name','');},receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic}};}};
+ if(mayUseQueue())change().catch(()=>{status='Local storage unavailable; you can keep playing';});
+ addEventListener('storage',e=>{
+  if(e.key===erasureKey||e.key===null){
+   const previous=erasure;erasure=read(erasureKey,null);erasureSaved=!!erasure;
+   if(erasure){generation++;controller?.abort();consent=false;manualPending=false;privacy?.suspend(true);showErasureStatus(erasure.blocked?erasureUnverified:'Online deletion pending. Sharing is off.');void retryErasure();}
+   else if(previous)showErasureStatus('Sharing is off.');
+  }
+  if(e.key===privacy?.key||e.key===null){generation++;controller?.abort();consentRecord=privacy?.choice()??null;if(consentRecord)renewal=!!consentRecord.cleanup_pending;consent=!erasure&&canShare()?consentRecord?.granted??false:false;privacy?.suspend(!consent);if(!consent)window.dreamDiagnostics?.clearPlaytestHistory?.();}
+  if(e.key===privacy?.manualKey||e.key===null)manualPending=!erasure&&!renewal&&canShare()&&privacy.manual();
+  if(e.key==='observatory-identity')identity=mayUseQueue()?read('observatory-identity',null):null;
+  if(e.key==='observatory-retry-at'&&mayUseQueue())retryAt=Math.max(retryAt,Number(read('observatory-retry-at',0))||0);
+ });
+ addEventListener('online',()=>{if(erasure)void retryErasure();else if(mayUseQueue()){retryAt=Math.max(0,Number(read('observatory-retry-at',0))||0);flush();}});
+ addEventListener('error',e=>failure('javascript',e.error||e.message));
+ addEventListener('unhandledrejection',e=>failure('rejection',e.reason));
+ document.addEventListener('webglcontextlost',e=>failure('webglcontextlost',e.statusMessage),true);
+ document.addEventListener('webglcontextrestored',()=>enqueue([localEvent('context_restored',{})]),true);
+ addEventListener('pagehide',e=>{if(consent)save('observatory-session',{id:session,closed:true,persisted:!!e.persisted,context:lastContext,loading:loadingContext,at:now()});});
+ addEventListener('pageshow',()=>{if(consent)save('observatory-session',{id:session,closed:false,context:lastContext,loading:loadingContext,at:now()});});
+ addEventListener('DOMContentLoaded',()=>{
+  if(consent===null)open();
+ });
+ if(consent===true&&previous?.closed&&previous.context){const e=localEvent('leave',{reason:'observed_pagehide',previous_session_id:previous.id,persisted:!!previous.persisted,loading:previous.loading});e.id=previous.id+':leave:'+previous.at;e.session_id=previous.id;Object.assign(e,previous.context);enqueue([e]);}
+ if(consent===true&&previous&&!previous.closed){lastContext=previous.context||{};lastSnapshot=previous.snapshot_id||'';lastConfirmedSnapshot=previous.confirmed_snapshot_id||'';failure('unclean_session','Vorherige Sitzung endete ohne Abschluss; Ursache unbekannt');}
+ if(consentRecord?.cleanup_pending&&!consent)void setConsent(false);
+ else if(erasure)void retryErasure();
+ setInterval(()=>{if(erasure)void retryErasure();else void flush();},30000);
 })();
+
+

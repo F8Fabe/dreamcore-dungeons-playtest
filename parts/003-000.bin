@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "build": "20261119T210309059233Z",
+      "title": "Local results, heroine loadouts and clearer combat details",
+      "summary": "Nightmare results are saved locally, and playtest data and public scores now share one consent choice. Heroines, saved builds and combat details have updated interfaces.",
+      "changes": [
+        "Keep Nightmare results locally and retry pending score publication after reconnecting. One consent choice covers playtest data and public scores.",
+        "Manage shared equipment through heroine loadouts. Saved-build previews show active sets and passive changes, and saving prefers an empty build slot.",
+        "Inspect live skill values and scaling in mobile popups, including updated caster and summon equipment effects.",
+        "Reset skill cooldowns when advancing between dungeons. Rendering recovery can restart the game from its saved checkpoint after WebGL context loss.",
+        "Fixed checked Poolrooms rendering, scaling-view callbacks and bounded render-target recovery failures."
+      ]
+    },
+    {
       "build": "20261113T163616920089Z",
       "title": "Summoner builds and continuous Arena runs",
       "summary": "Arena runs now move through a continuous corridor with 15 reward stops. Holy, Shadow and summon builds have new skills, and Herbert is available for training from the Heroines menu.",
