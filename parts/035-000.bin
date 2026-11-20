@@ -1,22 +1,21 @@
-/* Retry a failed main render target at most twice per failure episode, without reloading
-   gameplay or changing saves. Persistent/driver failures remain diagnostic errors. */
+/* One runtime per origin, acquired BEFORE IndexedDB is mounted. Never steal a
+ * suspended tab's ownership: it may resume with an old in-memory filesystem. */
 (() => {
-  let notify=null, pending=false, attempts=0, retrying=false, failed=false;
-  window.dreamRenderRecovery={
-    install(callback){notify=callback;if(pending&&notify)notify();},
-    failure(message){
-      if(!/^WARNING: Could not create render target, status: /.test(message))return;
-      failed=true;
-      if(attempts>=2)return;
-      pending=true;if(notify)notify();
-    },
-    canRetry(){
-      const canvas=document.getElementById('canvas');
-      const gl=canvas?.getContext('webgl2');
-      return pending&&!retrying&&attempts<2&&document.visibilityState==='visible'&&
-        !!gl&&!gl.isContextLost()&&gl.drawingBufferWidth>0&&gl.drawingBufferHeight>0;
-    },
-    beginRetry(){pending=false;attempts++;retrying=true;failed=false;},
-    finishRetry(){retrying=false;if(!failed)attempts=0;}
-  };
+ 'use strict';
+ let held=false, pending;
+ const forever=new Promise(()=>{});
+ window.dreamProfileOwner={
+  get held(){return held;},
+  acquire(){
+   if(pending)return pending;
+   pending=new Promise((resolve,reject)=>{
+    if(!navigator.locks){reject(new Error('Safe save ownership is unavailable. Please use a supported browser.'));return;}
+    navigator.locks.request('dreamcore-profile-writer-v1',{ifAvailable:true},lock=>{
+     if(!lock){reject(new Error('Dreamcore Dungeons is already open. Close the other game window, then reload this page.'));return;}
+     held=true;resolve();return forever;
+    }).catch(reject);
+   });
+   return pending;
+  }
+ };
 })();

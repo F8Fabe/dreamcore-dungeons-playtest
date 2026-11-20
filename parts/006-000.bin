@@ -88,6 +88,7 @@
     if(remaining>0)return;
     if(phase==='retry')begin();else problem(phase==='save'?'save_ack_timeout':'sync_ack_timeout');
   }
+  let seasonFlight=null,seasonGeneration=0,seasonSaveStatus='';
   window.dreamContextRecovery={
     async flushStorage(fs){
       // Foreground deadlines belong to the state machine, not wall-clock timers
@@ -95,6 +96,22 @@
       while(fs._syncing)await new Promise(resolve=>setTimeout(resolve,25));
       if(!fs.is_persistent())throw new Error('storage_unavailable');
       const error=await fs.sync();if(error)throw new Error('storage_sync_failed');
+    },
+    get seasonSaveStatus(){return seasonSaveStatus;},
+    beginSeasonSave(){
+      const generation=++seasonGeneration;seasonSaveStatus='saving';
+      // Retry joins a pending real transaction; if its ACK was lost but FS is idle,
+      // issue a new flush. Old completions cannot acknowledge the newer attempt.
+      if(!seasonFlight||engine?.rtenv?.dreamStorageState?.().syncing===false){
+        const task=Promise.resolve().then(()=>window.dreamContextRecovery.persistProfile());
+        seasonFlight=task;
+        task.then(()=>{if(seasonFlight===task)seasonFlight=null;},()=>{if(seasonFlight===task)seasonFlight=null;});
+      }
+      seasonFlight.then(()=>{if(generation===seasonGeneration)seasonSaveStatus='saved';},()=>{if(generation===seasonGeneration)seasonSaveStatus='error';});
+    },
+    async persistProfile(){
+      if(!engine?.rtenv?.dreamSyncPersistent)throw new Error("sync_bridge_missing");
+      await engine.rtenv.dreamSyncPersistent();
     },
     attachEngine(value){engine=value;},
     install(callback){save=callback;if(callback&&phase==='save'&&visible)try{save(requestId);}catch{problem('bridge_exception');}},

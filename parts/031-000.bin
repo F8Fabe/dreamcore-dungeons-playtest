@@ -453,9 +453,20 @@
 
  // Transient request state only. The game's atomic profile owns the durable score queue.
  const nightmareScoreReceipts={},nightmareFlights=new Set(),nightmareAttempts=new Map();
- function scoreReceipt(row,status,reason=''){
-  nightmareScoreReceipts[row.request_id]={epoch:row.epoch,status,reason};
+ function scoreReceipt(row,status,reason='',paused=false){
+  nightmareScoreReceipts[row.request_id]={epoch:row.epoch,status,reason,paused};
   const ids=Object.keys(nightmareScoreReceipts);if(ids.length>64)delete nightmareScoreReceipts[ids[0]];
+ }
+ // Explicit user retry after correcting auth/sharing. Keep terminal receipts and
+ // ordinary network/rate-limit backoff intact; never mint a new publication ID.
+ function retryNightmareScores(){
+  if(!publicHighscores())return;
+  const epoch=read('observatory-public-scores',{}).token;
+  for(const [id,ack] of Object.entries(nightmareScoreReceipts)){
+   if(ack.epoch===epoch&&ack.status==='retry'&&ack.paused&&!nightmareFlights.has(id)){
+    nightmareAttempts.delete(id);delete nightmareScoreReceipts[id];
+   }
+  }
  }
  async function publishNightmareScore(row){
   if(!row||typeof row.request_id!=='string'||typeof row.epoch!=='string'||!publicHighscores()||row.epoch!==read('observatory-public-scores',{}).token)return;
@@ -469,7 +480,7 @@
    const retryTime=header?(Number.isFinite(seconds)?now()+seconds*1000:Date.parse(header)):0;
    attempt.count++;attempt.after=paused?Infinity:Math.max(Number(retryTime)||0,now()+Math.min(300000,2000*2**Math.min(attempt.count,7)));
    nightmareAttempts.set(row.request_id,attempt);if(nightmareAttempts.size>64)nightmareAttempts.delete(nightmareAttempts.keys().next().value);
-   scoreReceipt(row,'retry',reason);
+   scoreReceipt(row,'retry',reason,paused);
   };
   nightmareFlights.add(row.request_id);
   try{
@@ -494,7 +505,7 @@
   receiptPending.add(event.id);
   enqueue([event]).then(ok=>{if(ok){receipts[event.id]=true;const keys=Object.keys(receipts);if(keys.length>64)delete receipts[keys[0]];}receiptPending.delete(event.id);});
  }
- window.dreamObservatory={publishNightmareScore,nightmareScoreReceipts,get nightmarePublicationReady(){return !!privacy&&privacy.ready()===true;},get publicHighscores(){return publicHighscores();},get publicScoreEpoch(){return publicHighscores()?read('observatory-public-scores',{}).token||'':'';},requestCombinedConsent,get combinedConsentRequestStatus(){return combinedConsentRequestStatus;},setProfileName,get profileName(){return read('dreamcore-profile-name','');},receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic},online:navigator.onLine!==false,sharing:consent===true,busy,retryAt,failures,profilePending:!!read('observatory-profile-dirty',false),deletionPending:!!erasure,renewal,lastSuccessAt};}};
+ window.dreamObservatory={publishNightmareScore,retryNightmareScores,nightmareScoreReceipts,get nightmarePublicationReady(){return !!privacy&&privacy.ready()===true;},get publicHighscores(){return publicHighscores();},get publicScoreEpoch(){return publicHighscores()?read('observatory-public-scores',{}).token||'':'';},requestCombinedConsent,get combinedConsentRequestStatus(){return combinedConsentRequestStatus;},setProfileName,get profileName(){return read('dreamcore-profile-name','');},receipts,enqueueReceipt,get consentEpoch(){return consentRecord?.decided_at||0;},sessionId:session,get consent(){return consent===true;},enqueue,flush,setConsent,deleteData,failure,loading,open,exportLocal,get status(){return {status,queueCount,gaps,traffic:{...traffic},online:navigator.onLine!==false,sharing:consent===true,busy,retryAt,failures,profilePending:!!read('observatory-profile-dirty',false),deletionPending:!!erasure,renewal,lastSuccessAt};}};
  if(mayUseQueue())change().catch(()=>{status='Local storage unavailable; you can keep playing';});
  addEventListener('storage',e=>{
   if(e.key===erasureKey||e.key===null){
