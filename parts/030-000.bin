@@ -1,14 +1,6 @@
-/* Only the permission choice is read before optional storage is allowed. */
-(() => {
- const key='observatory-privacy-choice',version='2026-11-19.1';
- const manualKey='observatory-manual-report-permission';
- let suspended=false;
- const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
- const stored=()=>read(key);
- const valid=value=>value?.version===version&&typeof value.granted==='boolean'&&Number.isFinite(value.decided_at)&&(!value.granted||value.adult_confirmed===true);
- const ready=()=>window.dreamObservatoryConfig?.privacyNoticeReady===true;
- const choice=()=>{const value=stored();return valid(value)?value:null;};
- const permits=()=>!suspended&&ready()&&choice()?.granted===true;
- const manual=()=>ready()&&read(manualKey)===version;
- window.dreamPlaytestPrivacy=Object.freeze({key,version,manualKey,stored,choice,ready,permits,manual,suspend:value=>{suspended=value;}});
-})();
+// Public ingest endpoint. Uploads still require the player's explicit consent.
+window.dreamObservatoryConfig = {
+ endpoint: 'https://dreamcore-observatory-ingest.fabeceo.workers.dev',
+ // The reviewed notice is available; sharing still requires a fresh opt-in.
+ privacyNoticeReady: true
+};

@@ -1,22 +1,42 @@
-/* Retry a failed main render target at most twice per failure episode, without reloading
-   gameplay or changing saves. Persistent/driver failures remain diagnostic errors. */
-(() => {
-  let notify=null, pending=false, attempts=0, retrying=false, failed=false;
-  window.dreamRenderRecovery={
-    install(callback){notify=callback;if(pending&&notify)notify();},
-    failure(message){
-      if(!/^WARNING: Could not create render target, status: /.test(message))return;
-      failed=true;
-      if(attempts>=2)return;
-      pending=true;if(notify)notify();
-    },
-    canRetry(){
-      const canvas=document.getElementById('canvas');
-      const gl=canvas?.getContext('webgl2');
-      return pending&&!retrying&&attempts<2&&document.visibilityState==='visible'&&
-        !!gl&&!gl.isContextLost()&&gl.drawingBufferWidth>0&&gl.drawingBufferHeight>0;
-    },
-    beginRetry(){pending=false;attempts++;retrying=true;failed=false;},
-    finishRetry(){retrying=false;if(!failed)attempts=0;}
-  };
-})();
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dreamcore Dungeons — Privacy notice</title>
+<style>
+body{max-width:48rem;margin:2rem auto;padding:0 1rem;background:#191626;color:#f1edf8;font:1rem/1.65 system-ui,sans-serif}
+a{color:#d5bbff}h1,h2{line-height:1.2}li{margin:.45rem 0}
+</style>
+<main>
+<h1>Dreamcore Dungeons privacy notice</h1>
+<p>Notice version: <strong>2026-11-19.1</strong></p>
+<h2>Who is responsible?</h2>
+<address>Fabian Ceolotto<br>Fröhlichgasse 83/16<br>8010 Graz, Austria<br>Privacy requests: <a href="mailto:fabeceo@gmail.com">fabeceo@gmail.com</a></address>
+<h2>Optional playtest sharing</h2>
+<p>Participation in playtest data sharing is for adults aged 18 or older. We ask for a self-confirmation, not your date of birth or an identity document. You can play without sharing. If you opt in, I use your playtest data to investigate bugs, improve the game and compare builds. The legal basis for optional sharing is your consent (Article 6(1)(a) GDPR). This includes storing the optional upload queue and diagnostic history in your browser. Your choice, notice version and decision time are remembered. Ordinary game saves and settings serve a separate purpose.</p>
+<ul>
+<li>Runs: game build and rules version, progress and outcomes, timestamps, choices, character builds, skills, items, and snapshots of game state.</li>
+<li>Technical reports: error text and recent technical events, browser/device details such as user agent and window size, and game/loading context. Reports can include information you write yourself. Leave out personal information and secrets.</li>
+<li>A random installation ID and session/run IDs connect records; no player account is required. These records are treated as pseudonymous. The browser keeps a private credential used to authenticate uploads and deletion requests.</li>
+</ul>
+<p>With automatic sharing off, you can explicitly send a one-time problem report. That action authorizes sending the description and accompanying technical context, and storing it locally until delivery can be retried. It does not enable automatic sharing. You can review or export local diagnostic information separately; manually sharing an exported file sends it to the recipient you choose.</p>
+<h2>Hosting and recipients</h2>
+<p>GitHub Pages hosts the game and logs visitor IP addresses for security, independently of your sharing choice. See <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub’s hosting information</a> and <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">privacy statement</a>.</p>
+<p>Cloudflare Workers receives reports and uses request information, including IP addresses to limit abuse during registration. I rely on my legitimate interest in securing this service for that rate limiting (Article 6(1)(f) GDPR). Cloudflare D1 stores the reports on my behalf. I am the only operator with access to the private Observatory.</p>
+<p>D1 currently runs in Western Europe. Cloudflare may process data outside the European Economic Area; I do not guarantee EU-only processing. Cloudflare’s <a href="https://www.cloudflare.com/terms/#6-data-processing-and-security">Self-Serve terms</a> incorporate its <a href="https://www.cloudflare.com/cloudflare-customer-dpa/">Data Processing Addendum</a>, which describes applicable safeguards for restricted transfers, including <a href="https://www.cloudflare.com/cloudflare-customer-scc/">EU Standard Contractual Clauses</a>. Contact me to request information or a copy of the safeguards that apply to your data.</p>
+<p>If you email me about your data, I use your email address and the information needed to handle the request and document my response, as required by Article 6(1)(c) GDPR. The contact mailbox is hosted by Gmail. Please leave out passwords and private upload credentials.</p>
+<h2>How long data is kept</h2>
+<p>Ordinary uploaded records and unfinished upload parts are eligible for daily cleanup after 90 days. I review whether each reference run and its supporting records are still needed within 12 months of the run’s first recording, and at least annually thereafter while kept as a reference. If there is no continuing need, I remove the reference designation so the ordinary cleanup applies, or delete the data sooner. The review is a check, not a guaranteed deletion date.</p>
+<p>The daily cleanup also deletes installation records older than 90 days once there are no reports, runs or upload parts left for that installation. I review separate issue notes and exports for deletion when they are no longer needed or when handling a deletion request. Cloudflare D1 Free can restore earlier database states for up to seven days using <a href="https://developers.cloudflare.com/d1/reference/time-travel/">Time Travel</a>. A deletion from active storage does not immediately remove earlier restore points.</p>
+<p>The browser upload/history store has a 20 MiB cap. You can clear its data from the game or browser; clearing browser storage can remove the credential needed to delete online records yourself.</p>
+<h2>Your choices and rights</h2>
+<p>Go to Settings → Playtest &amp; feedback to turn sharing off. Withdrawal stops automatic sharing, clears local playtest history and queued reports, and requests deletion of active server records linked to this browser installation. It does not change the lawfulness of earlier processing. “Delete my collected data” also works for reports sent while automatic sharing was off. If offline, the browser keeps the deletion request and the credential needed to carry it out; it retries when the game page is open and connected. New sharing is blocked until the server confirms deletion. Keep this browser’s data until deletion is confirmed. If deletion cannot be verified or you no longer have the original browser, contact me at the address above. The local download includes retained local records only.</p>
+<p>You may request access, correction, deletion, restriction or portability where applicable. You may also object where processing is based on legitimate interests, and lodge a complaint with the <a href="https://dsb.gv.at/">Austrian Data Protection Authority</a> or another competent supervisory authority.</p>
+<p><a href="./">Back to the game</a></p>
+<h2>Profile name and public Nightmare highscores</h2>
+<p>Joint sharing consent version: <strong>2026-11-19.1</strong>. The optional sharing choice covers playtest data and publication of future completed Nightmare scores. Players who previously enabled playtest sharing confirm this expanded choice once before it applies. Reading online highscores does not enable sharing.</p>
+<p>Public entries show your chosen profile name or assigned Player number, heroine, Nightmare tier, original rules version and active clear time. Names need not be unique. Your name or Player number can link your public scores together. Internal installation and run identifiers, equipment, seeds and diagnostic reports are not displayed.</p>
+<p>Completed results are also saved in your local game profile when sharing is off. Highscores → Saved shows available results and their publication status. “Publish saved highscores” requests publication of all eligible saved results. If sharing is off, it first asks you to enable the joint sharing choice. Confirming that dialog from this action continues publication; accepting sharing elsewhere does not publish older results automatically. Scores retain their original build and rules. Missing historical evidence can make an older result ineligible.</p>
+<p>Publication sends the minimal completion evidence and original score details through an authenticated request. The game profile retains pending requests for offline retry. Turning sharing off cancels pending publication and requests deletion of this installation’s online data and scores. Offline deletion waits for a connection. Re-enabling sharing alone does not republish removed scores; use the explicit publish action again. Cached public lists may retain a removed entry for up to 60 seconds after successful online deletion. Ordinary local game saves remain separate from collected playtest data.</p>
+</main>
+</html>
