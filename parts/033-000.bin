@@ -1,26 +1,16 @@
-/* Keep the mobile game canvas in portrait, regardless of browser orientation. */
+/* Prefer portrait orientation without constraining the game viewport. */
 (() => {
   'use strict';
   const mobile = navigator.userAgentData?.mobile === true ||
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (!mobile) return;
-  let size;
-  function resize() {
-    const width = Math.max(1, Math.min(innerWidth, innerHeight * 9 / 16));
-    size = Object.freeze({width, height: width * 16 / 9});
-  }
-  // Best effort only. No fullscreen prompt, blocker, pause or orientation UI.
+  // Best effort only. Canvas sizing remains owned by Godot/the browser.
   async function lock() {
     try { await screen.orientation?.lock?.('portrait-primary'); } catch (_) {}
   }
-  window.dreamPortrait = Object.freeze({get size() { return size; }});
-  const style = document.createElement('style');
-  style.textContent = '#canvas{position:fixed!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;margin:0!important}html,body{overflow:hidden;background:#171324}';
-  document.head.appendChild(style);
-  resize(); lock();
-  window.addEventListener('resize', resize);
-  window.addEventListener('pageshow', resize);
-  document.addEventListener('fullscreenchange', () => {resize(); lock();});
+  lock();
+  window.addEventListener('pageshow', lock);
+  document.addEventListener('fullscreenchange', lock);
   document.addEventListener('pointerup', lock, {once:true});
 })();

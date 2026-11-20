@@ -31,19 +31,19 @@
   },
   {
     "path": "changelog.html",
-    "bytes": 34854,
+    "bytes": 35478,
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "b9da6ddb6efd8fdf35f5bfe0db11c54e58d584a69afa33cd64d9475fda80039a"
+    "sha256": "0eeac773a9ba9b05c7ee6d4417d88816127f9bbb8c5ccd189ec40fd03d708e88"
   },
   {
     "path": "changelog.json",
-    "bytes": 31156,
+    "bytes": 31682,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "d3090a94a5a3eac0bd4d67ab7206b6dce9879d4900bc01a3e461d2656a03f166"
+    "sha256": "fa83a1f0aefb904169ea352b1e8fe0852683adb18b576ff0e109fbddb7a111de"
   },
   {
     "path": "context_recovery.js",
@@ -135,11 +135,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 12081,
+    "bytes": 12215,
     "parts": [
       "017-000.bin"
     ],
-    "sha256": "9acd1d06dd885a2ba9a819c427fe9cdf0c8d56cb22916a3f609b8b8b7b95e3bb"
+    "sha256": "6399f820865884306bc03bf548d8be82f7668201ae8df112fbbc920423e3eb9e"
   },
   {
     "path": "index.icon.png",
@@ -151,11 +151,11 @@
   },
   {
     "path": "index.js",
-    "bytes": 291452,
+    "bytes": 291371,
     "parts": [
       "019-000.bin"
     ],
-    "sha256": "2019ab0ced11826b5a176e79f3de4c02d975d30b80950c1969550c24efdeadbd"
+    "sha256": "c4e9da074318692d1c319f0476be4b696a121b3fa4f5a49aaa7866257aba2d90"
   },
   {
     "path": "index.pck",
@@ -268,11 +268,11 @@
   },
   {
     "path": "portrait.js",
-    "bytes": 1297,
+    "bytes": 692,
     "parts": [
       "033-000.bin"
     ],
-    "sha256": "f1af4855002bc7b8ed87b68c0893b2f3871ebc0d8574884eca3d2a6e40e93c81"
+    "sha256": "cf9557e1c35aa74089740c85bc52cb22e08dc4fd14fbfa08c0d47841135ea24c"
   },
   {
     "path": "privacy.html",
@@ -292,11 +292,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 13698,
+    "bytes": 4565,
     "parts": [
       "036-000.bin"
     ],
-    "sha256": "4d525476dc57711e61a1186605521eb33307d2c8adb124c369816d5d1f8d0f26"
+    "sha256": "a24f7811b1ddfae0f7cbc7aeea91d06dfc244eb9d5d539dcfb79a0fede129be6"
   },
   {
     "path": "render_recovery.js",

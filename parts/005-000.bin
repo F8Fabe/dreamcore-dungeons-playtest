@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "build": "20261120T224140168678Z",
+      "title": "Mobile viewport hotfix",
+      "summary": "The mobile game now fills the available screen again. Portrait is preferred without forcing a fixed resolution or 9:16 frame.",
+      "changes": [
+        "Removed the forced canvas aspect ratio and centering that caused black bars on phones.",
+        "Canvas sizing follows the browser viewport, including rotation and keyboard resizing. Portrait orientation remains a best-effort preference."
+      ]
+    },
+    {
       "build": "20261120T214737944934Z",
       "title": "Dream Intensity, weapon builds and a clearer portrait interface",
       "summary": "Fast clears now build Dream Intensity, with stronger reward opportunities and Nightmare enemy variants. Weapon, summon, Holy and Shadow routes expand alongside gear, Season history and mobile interface changes.",
