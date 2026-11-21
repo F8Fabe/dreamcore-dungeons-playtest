@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "build": "20261121T012944111786Z",
+      "title": "Combat movement hotfix",
+      "summary": "Fixed a combat stall where enemies and your heroine could wait for each other instead of attacking.",
+      "changes": [
+        "Enemies now finish approaching their targets before stopping, including when resuming an existing run.",
+        "Season 1 now shows a one-time explanation of what was kept and reset. Already updated profiles get the notice too; your current run and Season 1 progress stay intact."
+      ]
+    },
+    {
       "build": "20261121T003553803855Z",
       "title": "Season 1: Fresh Start",
       "summary": "Season 1 starts fresh while keeping your Waifus and Mastery. Close all old game tabs before opening this update.",

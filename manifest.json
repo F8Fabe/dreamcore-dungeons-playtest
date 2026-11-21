@@ -31,27 +31,27 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 399685,
+    "bytes": 399890,
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "eab188695691f563fd16e9a26e7e1720b0211e1cee70a52d63749dfa543f9ca6"
+    "sha256": "91c5f7ab9eaefddbd8d15b9ab98243794ba3bbbbf34070dd49c4dd8ea24d2706"
   },
   {
     "path": "changelog.html",
-    "bytes": 36589,
+    "bytes": 37229,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "e8e77084eabe0da701b231281e593d8984a65c69b69f0f539f1bd70a7f18ceb3"
+    "sha256": "c69caadec945b48d8d2854ec726c58624c95b54378fc97d94f6aa9d553a87ad2"
   },
   {
     "path": "changelog.json",
-    "bytes": 32703,
+    "bytes": 33245,
     "parts": [
       "006-000.bin"
     ],
-    "sha256": "0e09cc4b772c29b71936aee48baab4cd203cc26f90500b64c32ef2a953070274"
+    "sha256": "95c4f0215725c2a8c082313a8595fdee6439428ba16992d4032dbb6a157a9751"
   },
   {
     "path": "context_recovery.js",
@@ -147,7 +147,7 @@
     "parts": [
       "018-000.bin"
     ],
-    "sha256": "d8aaa0cbe3bb5639a6b52d0258a944b4336db73dc642b68c11f62b782af45608"
+    "sha256": "211f3dc43fd6dbe4ce3467e5507cad48874fd7fc538ec4cccf23993ba8091fbe"
   },
   {
     "path": "index.icon.png",
@@ -167,7 +167,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 94538048,
+    "bytes": 94542564,
     "parts": [
       "021-000.bin",
       "021-001.bin",
@@ -175,7 +175,7 @@
       "021-003.bin",
       "021-004.bin"
     ],
-    "sha256": "d389b5233b03568b2889152500d36d8c15543a41818da529539102ccf4bb01b0"
+    "sha256": "a8a978e5a6b90a68bc7a6634a3643d8cca8bcd089ef0dbd0eb66e40c90840b9f"
   },
   {
     "path": "index.png",
@@ -228,27 +228,27 @@
   },
   {
     "path": "Licenses/NotoSansMath-OFL.txt",
-    "bytes": 4380,
+    "bytes": 4473,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
+    "sha256": "755c0e2dec6c2371ff6746dee281ad0c038b38a9b265039b0e340f3e107a6929"
   },
   {
     "path": "Licenses/NotoSansSymbols-OFL.txt",
-    "bytes": 4383,
+    "bytes": 4476,
     "parts": [
       "029-000.bin"
     ],
-    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
+    "sha256": "dee1e0758c6ce86a7aee4aa812387de573fbe1b9a78bfc8332515fac2762aba5"
   },
   {
     "path": "Licenses/NotoSansSymbols2-OFL.txt",
-    "bytes": 4383,
+    "bytes": 4476,
     "parts": [
       "030-000.bin"
     ],
-    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
+    "sha256": "dee1e0758c6ce86a7aee4aa812387de573fbe1b9a78bfc8332515fac2762aba5"
   },
   {
     "path": "observatory-config.js",
@@ -300,11 +300,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 5153,
+    "bytes": 4799,
     "parts": [
       "037-000.bin"
     ],
-    "sha256": "94d94676168162fed3fef0d53874bce770ad2c5e6dff30f71b2983cbf316734f"
+    "sha256": "716e4f3675a16ee5f436280594273edf6d2390b0bb0c596773b78a3d122f2a19"
   },
   {
     "path": "render_recovery.js",

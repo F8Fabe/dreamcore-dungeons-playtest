@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "build": "20261121T003553803855Z",
+  "build": "20261121T012944111786Z",
   "fixes": [
     {
       "bug_id": 54,
@@ -37,15 +37,19 @@
     {
       "bug_id": 151,
       "fix_id": "aa755af3aa62545f3b0a29695403a0c358deddc5b4cdeb54b7e00902bfd09354"
+    },
+    {
+      "bug_id": 186,
+      "fix_id": "a59dc2bc15df9d42cf77dc1d07633b4cdf474934aca1679764cf2b184ebb59e6"
     }
   ],
   "artifacts": {
     "audio_diagnostics.js": "58091d973d793547c4eaf5fbaa981f0590203e2f7ebbeef24c0b1922c8bba549",
     "audio_position_worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "audio_recovery.js": "873943b8e0bf6c4fc5bc6642b62f8dd6651463b8dd45aa86a9cf29fc26825bbc",
-    "build-manifest.json": "eab188695691f563fd16e9a26e7e1720b0211e1cee70a52d63749dfa543f9ca6",
-    "changelog.html": "e8e77084eabe0da701b231281e593d8984a65c69b69f0f539f1bd70a7f18ceb3",
-    "changelog.json": "0e09cc4b772c29b71936aee48baab4cd203cc26f90500b64c32ef2a953070274",
+    "build-manifest.json": "91c5f7ab9eaefddbd8d15b9ab98243794ba3bbbbf34070dd49c4dd8ea24d2706",
+    "changelog.html": "c69caadec945b48d8d2854ec726c58624c95b54378fc97d94f6aa9d553a87ad2",
+    "changelog.json": "95c4f0215725c2a8c082313a8595fdee6439428ba16992d4032dbb6a157a9751",
     "context_recovery.js": "0b17a28883a54fbae2f5638cd32de39f69da4263715fe14c7ca30d7f598b4ff5",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025",
@@ -57,10 +61,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "d8aaa0cbe3bb5639a6b52d0258a944b4336db73dc642b68c11f62b782af45608",
+    "index.html": "211f3dc43fd6dbe4ce3467e5507cad48874fd7fc538ec4cccf23993ba8091fbe",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "b45bf69ed96800b82a3575dc20fce4f641d220e890b75981f04e5661cba1cfac",
-    "index.pck": "d389b5233b03568b2889152500d36d8c15543a41818da529539102ccf4bb01b0",
+    "index.pck": "a8a978e5a6b90a68bc7a6634a3643d8cca8bcd089ef0dbd0eb66e40c90840b9f",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -74,13 +78,11 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Season 1: Fresh Start",
-    "summary": "Season 1 starts fresh while keeping your Waifus and Mastery. Close all old game tabs before opening this update.",
+    "title": "Combat movement hotfix",
+    "summary": "Fixed a combat stall where enemies and your heroine could wait for each other instead of attacking.",
     "changes": [
-      "Your Waifus, Mastery, settings and historical scores stay. Builds, gear, Dreamstones, seasonal unlocks and unfinished runs reset; you receive starter gear for the new season.",
-      "The Season change is saved before you can play and happens only once. If saving fails, retry from the save screen; reloading later will not reset Season 1 progress again.",
-      "Enemy Challenge no longer reflects every incoming hit back at you; its taunt, initial hit and protection remain. Older gear without recorded affix tiers now explains why its tier information is missing.",
-      "Reduced rendering work for enemies, summons and area indicators. Improved diagnostic details for rendering and audio failures without changing your sharing choice."
+      "Enemies now finish approaching their targets before stopping, including when resuming an existing run.",
+      "Season 1 now shows a one-time explanation of what was kept and reset. Already updated profiles get the notice too; your current run and Season 1 progress stay intact."
     ]
   }
 }
