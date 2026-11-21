@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "build": "20261121T162244410917Z",
+      "title": "Summons stay between encounters",
+      "summary": "Your summons now stay with you between encounters instead of disappearing after rewards.",
+      "changes": [
+        "Surviving allied summons keep their HP and remaining lifetime through rewards, corridor travel and dungeon transitions, including saved transitions.",
+        "Reward pauses and travel no longer consume summon duration. Dead or expired summons still disappear, and summons clear when a run ends.",
+        "Updated optional playtest-session reporting."
+      ]
+    },
+    {
       "build": "20261121T151607054154Z",
       "title": "Boss builds, Nightmare loot and combat feedback",
       "summary": "Boss encounters have new builds and phases, with revised Hard/Nightmare rewards. Your existing Season 1 progress stays intact.",

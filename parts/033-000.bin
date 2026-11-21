@@ -106,6 +106,16 @@
  }
  function serializeError(error){return String(error?.stack||error?.message||error||'').replace(/https?:\/\/[^\s)]+/g,'[url]').slice(0,4000);}
  function localEvent(kind,data){return {schema:1,id:uuid(),session_id:session,sequence:0,run_id:lastContext.run_id||'',attempt_id:lastContext.attempt_id||'',rules_hash:lastContext.rules_hash||'',rules_version:lastContext.rules_version||'',arena:lastContext.arena,kind,data};}
+ // Positive coarse gameplay evidence on existing events only, after consent.
+ function gameplayObservation(raw){
+  if(raw.kind!=='attempt_end'||raw.arena?.version!==1||raw.data?.partial===true||raw.data?.origin==='lab'||raw.data?.origin==='developer'||raw.arena?.developer===true||raw.arena?.route==='encounter')return null;
+  const ua=String(navigator.userAgent||'');
+  const platform=/iPad|iPhone|iPod/.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1?'ios':/Android/.test(ua)?'android':/Windows/.test(ua)?'windows':/Macintosh|Mac OS/.test(ua)?'macos':/Linux/.test(ua)?'linux':null;
+  const browser=/Edg(?:A|iOS)?\//.test(ua)?'edge':/Firefox\/|FxiOS\//.test(ua)?'firefox':/Chrome\/|CriOS\//.test(ua)?'chrome':/Safari\//.test(ua)?'safari':null;
+  const seconds=Number(raw.wall_time),observed_at=Number.isFinite(seconds)&&seconds>0?Math.floor(seconds<1e11?seconds*1000:seconds):0;
+  if(!platform||!browser||!observed_at||observed_at>now())return null;
+  return {schema:1,feature:'gameplay',phase:'arena',platform,browser,completed:true,observed_at};
+ }
  function enqueue(events,oneShot=false){
    if(!mayUseQueue()||(consent!==true&&!oneShot)||stopped)return Promise.resolve();
   const epoch=generation;
@@ -115,6 +125,11 @@
    for(const raw of events){
      const e={...raw,build:raw.build||document.documentElement.dataset.build||'local',received_client_at:now(),
       privacy:{notice_version:privacy.version,permission:oneShot?'manual_report':'automatic',consented_at:oneShot?raw.data.consented_at:consentRecord.decided_at,adult_confirmed:true}};
+    const observation=gameplayObservation(raw);
+    if(observation){
+     const data={...e.data,observation_context:observation};
+     if(!e.data.combat||bytes(JSON.stringify({...e,data}))<=65536)e.data=data;
+    }
     lastContext={run_id:e.run_id,attempt_id:e.attempt_id,rules_hash:e.rules_hash,rules_version:e.rules_version,arena:e.arena};
     if(e.kind==='snapshot')lastSnapshot=e.data.snapshot_id;
     const text=JSON.stringify(e), count=Math.ceil(text.length/PART);

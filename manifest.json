@@ -35,23 +35,23 @@
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "fc3623bd1026a2e4b967d679e31162f709bf0a1b0f2f130f9fe5a1eb2605b157"
+    "sha256": "2660b0493970180dbb222afe87d2fa3951cca383c83f3d2558306838f7b7f4ba"
   },
   {
     "path": "changelog.html",
-    "bytes": 38588,
+    "bytes": 39294,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "8313b3b279cc8cc9bc99ad7a31e261c0d96fb0119b96c2f11e63008c970d345f"
+    "sha256": "9591251cf40c9932e1daedf88dd143f5b412f5d1e9643597d74e78289e80b7a8"
   },
   {
     "path": "changelog.json",
-    "bytes": 34526,
+    "bytes": 35138,
     "parts": [
       "006-000.bin"
     ],
-    "sha256": "c5e6214ab4cd0c7074760062c42a103dfde12a6c4008a30d7291d01717d8b7e9"
+    "sha256": "0f7f289edb1829d2043631684892e190109b88240476d533415c33928c99d33c"
   },
   {
     "path": "context_recovery.js",
@@ -147,7 +147,7 @@
     "parts": [
       "018-000.bin"
     ],
-    "sha256": "35e60e9c630e21caabae3e483cce207c6f077e1d9efab00e798edb490c2330b8"
+    "sha256": "3fbcbcffc8daa1d649fe445fe50ed7cdffc74932e20523afcebc6ac7256b2286"
   },
   {
     "path": "index.icon.png",
@@ -167,7 +167,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 95054092,
+    "bytes": 95055100,
     "parts": [
       "021-000.bin",
       "021-001.bin",
@@ -175,7 +175,7 @@
       "021-003.bin",
       "021-004.bin"
     ],
-    "sha256": "85f0c497335983715081a9a747883f985b811aaea34717a8552cc19c1f03b04a"
+    "sha256": "364aa420798965fb66bb2057d1b3eadbd9f22d56427ecab39e6e4714f06b6745"
   },
   {
     "path": "index.png",
@@ -268,11 +268,11 @@
   },
   {
     "path": "observatory.js",
-    "bytes": 45290,
+    "bytes": 46580,
     "parts": [
       "033-000.bin"
     ],
-    "sha256": "78e58d78308bdac0e8c96c88631837982b73d218e397022f04078f0fb1c60df9"
+    "sha256": "dec797d6d8d249f920b39e8a9241a870fcf9d6c313681d4b36c2aef691d555bb"
   },
   {
     "path": "playtest_privacy.js",
@@ -308,11 +308,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 5747,
+    "bytes": 5083,
     "parts": [
       "038-000.bin"
     ],
-    "sha256": "4243b8e2d73ad7941bb83610cd5b6dc492d8800f3d765a693c26e525dc2e578c"
+    "sha256": "0504f8bd6d95ea158d82aeaa86cf7c2ff15a882bdcef1f1deb5710e206396833"
   },
   {
     "path": "render_recovery.js",
