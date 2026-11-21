@@ -1,16 +1,14 @@
-/* Prefer portrait orientation without constraining the game viewport. */
+/* Only the permission choice is read before optional storage is allowed. */
 (() => {
-  'use strict';
-  const mobile = navigator.userAgentData?.mobile === true ||
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (!mobile) return;
-  // Best effort only. Canvas sizing remains owned by Godot/the browser.
-  async function lock() {
-    try { await screen.orientation?.lock?.('portrait-primary'); } catch (_) {}
-  }
-  lock();
-  window.addEventListener('pageshow', lock);
-  document.addEventListener('fullscreenchange', lock);
-  document.addEventListener('pointerup', lock, {once:true});
+ const key='observatory-privacy-choice',version='2026-11-19.1';
+ const manualKey='observatory-manual-report-permission';
+ let suspended=false;
+ const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
+ const stored=()=>read(key);
+ const valid=value=>value?.version===version&&typeof value.granted==='boolean'&&Number.isFinite(value.decided_at)&&(!value.granted||value.adult_confirmed===true);
+ const ready=()=>window.dreamObservatoryConfig?.privacyNoticeReady===true;
+ const choice=()=>{const value=stored();return valid(value)?value:null;};
+ const permits=()=>!suspended&&ready()&&choice()?.granted===true;
+ const manual=()=>ready()&&read(manualKey)===version;
+ window.dreamPlaytestPrivacy=Object.freeze({key,version,manualKey,stored,choice,ready,permits,manual,suspend:value=>{suspended=value;}});
 })();

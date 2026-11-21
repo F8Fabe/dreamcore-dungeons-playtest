@@ -1,83 +1,21 @@
-{
-  "schema": 1,
-  "build": "20261120T224140168678Z",
-  "fixes": [
-    {
-      "bug_id": 54,
-      "fix_id": "8c99f7aaf697273a7b1ad0d832eb4b15a92de0363afc2246ed58a6cc84cba088"
-    },
-    {
-      "bug_id": 55,
-      "fix_id": "515fcc80626fbd4953dafb4f45ed3bbefa68307a7994a83ac6eb538ab20fb3e6"
-    },
-    {
-      "bug_id": 56,
-      "fix_id": "18a4f1714e6a3d3fd8996eba15978abacb5caf34ec05c9014272bd53650d0c9f"
-    },
-    {
-      "bug_id": 57,
-      "fix_id": "686bfff7406b52244abef92d3ce11839b76c9222467db88113cd6748d7702206"
-    },
-    {
-      "bug_id": 59,
-      "fix_id": "ac523e31006e37e70b631d23255ab98159404325cf8097d8d0c1389266d8ffe8"
-    },
-    {
-      "bug_id": 60,
-      "fix_id": "7ac1e97111be8e9435045db30c69135eaf8ef8d17ba21a1a41477633511992da"
-    },
-    {
-      "bug_id": 61,
-      "fix_id": "2e9719fe2df0ca85b82e539137240c02691cd3986b870aae826861e230c7e50e"
-    },
-    {
-      "bug_id": 141,
-      "fix_id": "cfc05bc391c2a34a3c491822aac52a8fe1c4f32ec98dfee46488736ad6cc2db6"
-    },
-    {
-      "bug_id": 151,
-      "fix_id": "2fb30df35189ccdcddef7fd89440c1769013e6e8ef2e301c5f5ad6ef1b08230b"
-    }
-  ],
-  "artifacts": {
-    "audio_position_worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
-    "audio_recovery.js": "db02b6c98ba404406f324f3b6c5662f0586427f58218f5889f84a0ec5b5d298c",
-    "build-manifest.json": "0f5cd8258876d06bee5684dcc1bf59d6020a653a0762d478a35b9a92505b3950",
-    "changelog.html": "0eeac773a9ba9b05c7ee6d4417d88816127f9bbb8c5ccd189ec40fd03d708e88",
-    "changelog.json": "fa83a1f0aefb904169ea352b1e8fe0852683adb18b576ff0e109fbddb7a111de",
-    "context_recovery.js": "0b17a28883a54fbae2f5638cd32de39f69da4263715fe14c7ca30d7f598b4ff5",
-    "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
-    "download_gate.js": "492c2e37aecb75696ed14a010cfb1b2e28d72d0093d60be45d2cc07d7d75a49f",
-    "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
-    "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "dreamcore-64.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "dreamcore.webmanifest": "edc094aeaa90814c0f1dc7059277c6bf507a88e36beb6332244882680e29dc6a",
-    "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
-    "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
-    "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "6399f820865884306bc03bf548d8be82f7668201ae8df112fbbc920423e3eb9e",
-    "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
-    "index.js": "c4e9da074318692d1c319f0476be4b696a121b3fa4f5a49aaa7866257aba2d90",
-    "index.pck": "b9f4d53661005e4d5c32ca563f99fc5393289423f52e1a0be9d27c9a6bfc83e6",
-    "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
-    "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
-    "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
-    "observatory-config.js": "ab1de87d0d011e82bf5139abbd0f6fdb37fe046f91a2e3b88bf4475e1ec3f1e1",
-    "observatory.js": "eec3d202250c2fc2cb884e1dd202f5588ae3712c49062e4fb1b9a17b1bfbda9c",
-    "playtest_privacy.js": "fd22c4640673b100eeddba61abd377e55129884970b7f43de1d6763c6b8d1109",
-    "portrait.js": "cf9557e1c35aa74089740c85bc52cb22e08dc4fd14fbfa08c0d47841135ea24c",
-    "privacy.html": "0586285285b0dbe69593d2924ac93f998bf4b1cfbb98e41ae191eea512b22864",
-    "profile_owner.js": "88700d3cd848c613e3a9f31403bbe5ef1609afe787dd16789443765e417a145c",
-    "render_recovery.js": "ee49f5a04a9a77a18484f2e57c9d7aec948bbb468fdfd6e3a6ff6dfbd292c699",
-    "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
-  },
-  "notes": {
-    "title": "Mobile viewport hotfix",
-    "summary": "The mobile game now fills the available screen again. Portrait is preferred without forcing a fixed resolution or 9:16 frame.",
-    "changes": [
-      "Removed the forced canvas aspect ratio and centering that caused black bars on phones.",
-      "Canvas sizing follows the browser viewport, including rotation and keyboard resizing. Portrait orientation remains a best-effort preference."
-    ]
+/* One runtime per origin, acquired BEFORE IndexedDB is mounted. Never steal a
+ * suspended tab's ownership: it may resume with an old in-memory filesystem. */
+(() => {
+ 'use strict';
+ let held=false, pending;
+ const forever=new Promise(()=>{});
+ window.dreamProfileOwner={
+  get held(){return held;},
+  acquire(){
+   if(pending)return pending;
+   pending=new Promise((resolve,reject)=>{
+    if(!navigator.locks){reject(new Error('Safe save ownership is unavailable. Please use a supported browser.'));return;}
+    navigator.locks.request('dreamcore-profile-writer-v1',{ifAvailable:true},lock=>{
+     if(!lock){reject(new Error('Dreamcore Dungeons is already open. Close the other game window, then reload this page.'));return;}
+     held=true;resolve();return forever;
+    }).catch(reject);
+   });
+   return pending;
   }
-}
+ };
+})();

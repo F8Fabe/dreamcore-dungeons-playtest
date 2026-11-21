@@ -1,72 +1,66 @@
-/* Injected into the Godot 4.7.2 loader closure by branding.
- * The fallback processor is byte-identical to the checked engine template,
- * including its license. No alternate clock, mixer or main-thread streaming. */
-function dreamInitPositionAudio(audio, runtime, ctx, path) {
-  const state = {status: 'loading', attempts: 0, failures: 0};
-  Module['dreamAudioRecoveryProbe'] = () => ({...state});
-  const prototype = audio.SampleNode.prototype;
-  if (!prototype.dreamPositionRecovery) {
-    prototype.dreamPositionRecovery = true;
-    const start = prototype.start, pause = prototype.pause;
-    prototype.start = function () {
-      if (this.isCanceled || this.isPaused) return;
-      start.call(this);
-    };
-    prototype.pause = function (enabled = true) {
-      // Stock _pause ignores not-yet-started sources; remember that intent.
-      if (!this.isStarted) {
-        this.isPaused = enabled;
-        if (!enabled && this._dreamPositionReady && this._dreamStart) this.start();
-        return;
-      }
-      pause.call(this, enabled);
-    };
-    prototype.connectPositionWorklet = async function (shouldStart) {
-      this._dreamStart = shouldStart;
-      const ready = await audio.audioPositionWorkletPromise;
-      if (this.isCanceled) return;
-      if (!ready) {
-        // Release both JS and native sample ownership after terminal failure.
-        this.clear();
-        return;
-      }
-      this._source.connect(this.getPositionWorklet());
-      this._dreamPositionReady = true;
-      if (shouldStart) this.start();
-    };
-  }
-  // Attach the rejection handler immediately, including before the first sound.
-  return (async () => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (ctx.state === 'closed') { state.status = 'closed'; return false; }
-      let blobUrl;
-      try {
-        let url = path;
-        if (attempt === 1) {
-          await new Promise(resolve => setTimeout(resolve, 250));
-          if (ctx.state === 'closed') { state.status = 'closed'; return false; }
-          // Failed module URLs are cached by the worklet's module map.
-          const retry = new URL(path, window.location.href);
-          retry.searchParams.set('dream_audio_retry', '1');
-          url = retry.href;
-        } else if (attempt === 2) {
-          blobUrl = URL.createObjectURL(new Blob([DREAM_POSITION_PROCESSOR_SOURCE], {type: 'text/javascript'}));
-          url = blobUrl;
-        }
-        state.attempts++;
-        await ctx.audioWorklet.addModule(url);
-        if (ctx.state === 'closed') { state.status = 'closed'; return false; }
-        state.status = attempt === 2 ? 'embedded' : 'ready';
-        if (attempt) console.warn('Audio position module recovered (' + state.status + ').');
-        return true;
-      } catch (_) {
-        state.failures++;
-      } finally {
-        if (blobUrl) URL.revokeObjectURL(blobUrl);
-      }
-    }
-    state.status = 'failed';
-    runtime.error('Audio position module unavailable after 3 attempts (including embedded fallback).');
-    return false;
-  })();
+/**************************************************************************/
+/*  godot.audio.position.worklet.js                                                      */
+/**************************************************************************/
+/*                         This file is part of:                          */
+/*                             GODOT ENGINE                               */
+/*                        https://godotengine.org                         */
+/**************************************************************************/
+/* Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md). */
+/* Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.                  */
+/*                                                                        */
+/* Permission is hereby granted, free of charge, to any person obtaining  */
+/* a copy of this software and associated documentation files (the        */
+/* "Software"), to deal in the Software without restriction, including    */
+/* without limitation the rights to use, copy, modify, merge, publish,    */
+/* distribute, sublicense, and/or sell copies of the Software, and to     */
+/* permit persons to whom the Software is furnished to do so, subject to  */
+/* the following conditions:                                              */
+/*                                                                        */
+/* The above copyright notice and this permission notice shall be         */
+/* included in all copies or substantial portions of the Software.        */
+/*                                                                        */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,        */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY   */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
+/**************************************************************************/
+
+class GodotPositionReportingProcessor extends AudioWorkletProcessor {
+	static get parameterDescriptors() {
+		return [
+			{
+				name: 'reset',
+				defaultValue: 0,
+				minValue: 0,
+				maxValue: 1,
+				automationRate: 'k-rate',
+			},
+		];
+	}
+
+	constructor(...args) {
+		super(...args);
+		this.position = 0;
+	}
+
+	process(inputs, _outputs, parameters) {
+		if (parameters['reset'][0] > 0) {
+			this.position = 0;
+		}
+
+		if (inputs.length > 0) {
+			const input = inputs[0];
+			if (input.length > 0) {
+				this.position += input[0].length;
+				this.port.postMessage({ type: 'position', data: this.position });
+			}
+		}
+
+		return true;
+	}
 }
+
+registerProcessor('godot-position-reporting-processor', GodotPositionReportingProcessor);

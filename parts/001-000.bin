@@ -1,66 +1,63 @@
-/**************************************************************************/
-/*  godot.audio.position.worklet.js                                                      */
-/**************************************************************************/
-/*                         This file is part of:                          */
-/*                             GODOT ENGINE                               */
-/*                        https://godotengine.org                         */
-/**************************************************************************/
-/* Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md). */
-/* Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.                  */
-/*                                                                        */
-/* Permission is hereby granted, free of charge, to any person obtaining  */
-/* a copy of this software and associated documentation files (the        */
-/* "Software"), to deal in the Software without restriction, including    */
-/* without limitation the rights to use, copy, modify, merge, publish,    */
-/* distribute, sublicense, and/or sell copies of the Software, and to     */
-/* permit persons to whom the Software is furnished to do so, subject to  */
-/* the following conditions:                                              */
-/*                                                                        */
-/* The above copyright notice and this permission notice shall be         */
-/* included in all copies or substantial portions of the Software.        */
-/*                                                                        */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,        */
-/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY   */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   */
-/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      */
-/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
-/**************************************************************************/
-
-class GodotPositionReportingProcessor extends AudioWorkletProcessor {
-	static get parameterDescriptors() {
-		return [
-			{
-				name: 'reset',
-				defaultValue: 0,
-				minValue: 0,
-				maxValue: 1,
-				automationRate: 'k-rate',
-			},
-		];
-	}
-
-	constructor(...args) {
-		super(...args);
-		this.position = 0;
-	}
-
-	process(inputs, _outputs, parameters) {
-		if (parameters['reset'][0] > 0) {
-			this.position = 0;
-		}
-
-		if (inputs.length > 0) {
-			const input = inputs[0];
-			if (input.length > 0) {
-				this.position += input[0].length;
-				this.port.postMessage({ type: 'position', data: this.position });
-			}
-		}
-
-		return true;
-	}
-}
-
-registerProcessor('godot-position-reporting-processor', GodotPositionReportingProcessor);
+/* Private loader helper. No requests, storage, uploads or raw error/URL text.
+ * Existing diagnostics/Observatory retain consent, mode and upload budgets. */
+window.dreamAudioDiagnostics = (() => {
+  const errors = new WeakMap(), contexts = new WeakMap();
+  let nextId = 0, events = 0;
+  const roles = ['position', 'streaming', 'unknown'];
+  const phases = ['module', 'retry', 'embedded', 'initialization'];
+  const results = ['started', 'loaded', 'rejected', 'failed'];
+  const reasons = ['none', 'abort', 'security', 'syntax', 'unsupported', 'type', 'invalid_state', 'context_closed', 'unknown'];
+  function clean(value) {
+    if (!value || typeof value !== 'object') return null;
+    return {version: 1, role: roles.includes(value.role) ? value.role : 'unknown',
+      initialization: Number.isInteger(value.initialization) && value.initialization > 0 && value.initialization <= 16 ? value.initialization : 0,
+      attempt: Number.isInteger(value.attempt) && value.attempt >= 1 && value.attempt <= 3 ? value.attempt : 0,
+      phase: phases.includes(value.phase) ? value.phase : 'module',
+      result: results.includes(value.result) ? value.result : 'failed',
+      reason: reasons.includes(value.reason) ? value.reason : 'unknown',
+      // addModule exposes no Response/status. Never infer one from error text.
+      http_status: null};
+  }
+  function record(value) {
+    if (events++ >= 16) return;
+    try { window.dreamDiagnostics?.record({kind: 'audio_worklet', ...clean(value)}); } catch (_) {}
+  }
+  function context(value) {
+    const candidates = Array.isArray(value) ? value.slice(0, 4) : [value];
+    for (let error of candidates) {
+      for (let depth = 0; depth < 4 && error && typeof error === 'object'; depth++) {
+        if (errors.has(error)) return clean(errors.get(error));
+        try { error = error.cause; } catch (_) { break; }
+      }
+    }
+    return null; // Unrelated errors are never assigned by time proximity.
+  }
+  function tag(error, value) {
+    if (error && typeof error === 'object' && value) errors.set(error, clean(value));
+    return error;
+  }
+  function reason(error, ctx) {
+    if (ctx.state === 'closed') return 'context_closed';
+    const names = {AbortError:'abort', SecurityError:'security', SyntaxError:'syntax',
+      NotSupportedError:'unsupported', TypeError:'type', InvalidStateError:'invalid_state'};
+    return names[error?.name] || 'unknown';
+  }
+  async function load(ctx, url, role, attempt = 1, phase = 'module') {
+    role = roles.includes(role) ? role : 'unknown';
+    let modules = contexts.get(ctx);
+    if (!modules) { modules = new Map(); contexts.set(ctx, modules); }
+    if (attempt === 1 || !modules.has(role)) modules.set(role, nextId < 16 ? ++nextId : 0);
+    const entry = clean({role, initialization: modules.get(role), attempt, phase, result:'started', reason:'none'});
+    record(entry);
+    try {
+      const result = await ctx.audioWorklet.addModule(url);
+      record({...entry, result:'loaded'});
+      return result;
+    } catch (error) {
+      const failed = {...entry, result:'rejected', reason:reason(error, ctx)};
+      tag(error, failed); record(failed);
+      throw error; // Keep the exact rejection and the existing caller's handling.
+    }
+  }
+  return {load, context, clean, tag};
+})();

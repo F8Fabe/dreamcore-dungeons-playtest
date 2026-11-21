@@ -1,148 +1,326 @@
-/* Recover from a confirmed checkpoint automatically. A browser restore event is
- * not renderer recovery. Unknown persistence never authorizes an automatic reload. */
-(() => {
-  const guardKey='dream-context-auto-restart-v1', budget=15000, maxAttempts=2;
-  let engine, save, lost=false, phase='idle', attempts=0, requestId=0, flushId=0;
-  let checkpoint=false, durable=false, flight=false, remaining=0, last=performance.now();
-  let visible=document.visibilityState==='visible', timer, reports=0, healthy=0;
-  let panel,title,message,retry,restart,shownAfter=0;
-  const mark=(code)=>window.dreamDiagnostics?.record({kind:'context_recovery',phase,code,attempt:attempts,visibility:document.visibilityState});
-  function show(){
-    if(panel)return;
-    panel=document.createElement('section');panel.id='dream-context-recovery';
-    panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Game recovery');
-    panel.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#211c30;color:#f9f1ff;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:14px;font:18px system-ui;overflow:auto;box-sizing:border-box;opacity:0';
-    panel.setAttribute('aria-hidden','true');
-    title=document.createElement('h1');title.style.cssText='font-size:26px;margin:0';panel.append(title);
-    message=document.createElement('p');message.setAttribute('role','status');panel.append(message);
-    const button=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:16px;font:inherit;border:1px solid #b8a7ce;border-radius:10px;background:#382c4c;color:inherit';b.onclick=action;panel.append(b);return b;};
-    retry=button('Try again',()=>{attempts=0;begin();});
-    restart=button('Restart anyway',()=>reload(false));
-    document.body.append(panel);
-  }
-  function progress(){show();title.textContent='Restoring your game…';message.textContent='Please wait a moment.';retry.hidden=true;restart.hidden=true;}
-  function reveal(){panel.style.opacity='1';panel.removeAttribute('aria-hidden');}
-  function storageBusy(){return engine?.rtenv?.dreamStorageState?.().syncing===true||(flight&&engine?.rtenv?.dreamStorageState?.().syncing!==false);}
-  function decisionButtons(){
-    const busy=storageBusy();retry.disabled=busy;restart.disabled=busy;
-    message.textContent=busy?'Still saving. Please keep this page open.':durable?'Your progress is saved.':'Your latest progress may not be saved.';
-  }
-  function decision(code){
-    phase='decision';mark(code);reveal();
-    title.textContent=durable?'Ready to restart':'Please restart your game';
-    retry.hidden=durable;restart.hidden=false;restart.textContent=durable?'Restart game':'Restart anyway';
-    decisionButtons();
-    if(!durable&&reports++<2)window.dreamObservatory?.failure('webgl_recovery_unconfirmed',code);
-  }
-  function problem(code){
-    mark(code);
-    if(attempts<maxAttempts){phase='retry';remaining=1000;progress();}
-    else decision(code);
-  }
-  function reload(automatic){
-    if(storageBusy())return;
-    if(automatic){
-      // This marker survives page reloads. Only a healthy visible interval below
-      // rearms automatic restart, so repeated startup/loss cannot reload-loop.
-      try{
-        if(sessionStorage.getItem(guardKey)){decision('reload_guard');return;}
-        sessionStorage.setItem(guardKey,'pending');
-        if(sessionStorage.getItem(guardKey)!=='pending')throw new Error();
-      }catch{decision('reload_guard_unavailable');return;}
+{
+  "releases": [
+    {
+      "build": "20261121T003553803855Z",
+      "title": "Season 1: Fresh Start",
+      "summary": "Season 1 starts fresh while keeping your Waifus and Mastery. Close all old game tabs before opening this update.",
+      "changes": [
+        "Your Waifus, Mastery, settings and historical scores stay. Builds, gear, Dreamstones, seasonal unlocks and unfinished runs reset; you receive starter gear for the new season.",
+        "The Season change is saved before you can play and happens only once. If saving fails, retry from the save screen; reloading later will not reset Season 1 progress again.",
+        "Enemy Challenge no longer reflects every incoming hit back at you; its taunt, initial hit and protection remain. Older gear without recorded affix tiers now explains why its tier information is missing.",
+        "Reduced rendering work for enemies, summons and area indicators. Improved diagnostic details for rendering and audio failures without changing your sharing choice."
+      ]
+    },
+    {
+      "build": "20261120T224140168678Z",
+      "title": "Mobile viewport hotfix",
+      "summary": "The mobile game now fills the available screen again. Portrait is preferred without forcing a fixed resolution or 9:16 frame.",
+      "changes": [
+        "Removed the forced canvas aspect ratio and centering that caused black bars on phones.",
+        "Canvas sizing follows the browser viewport, including rotation and keyboard resizing. Portrait orientation remains a best-effort preference."
+      ]
+    },
+    {
+      "build": "20261120T214737944934Z",
+      "title": "Dream Intensity, weapon builds and a clearer portrait interface",
+      "summary": "Fast clears now build Dream Intensity, with stronger reward opportunities and Nightmare enemy variants. Weapon, summon, Holy and Shadow routes expand alongside gear, Season history and mobile interface changes.",
+      "changes": [
+        "Dream Intensity grows during a run: earn 40 points for a clear within 60% of its reference time, or 20 within the reference time. Each 100 points raises Intensity by one level, up to 10. Nightmare starts with up to four levels based on its tier.",
+        "Each Intensity level increases event chances by 2%, adds a 0.5% chance to upgrade reward rarity and a 0.25% chance to raise item level. The combat HUD shows the meter and opens its bonus details.",
+        "Each Intensity level adds a 1.2% chance per wave to turn an eligible enemy into a Nightmare variant: 35% more HP and 20% stronger offensive skill damage, with longer cast warnings. Defeating the marked enemy before the normal encounter ends guarantees a rarity upgrade for that reward.",
+        "Nightmare gear starts at the final Hard reward level. The final reward gains 1–2 item levels; other rewards can also gain 1–2 with a chance that increases by Nightmare tier. Intensity can add another level below its gear cap of 24.",
+        "Season 0 now has a Season overview and separates persistent score history from run data. No Season reset is active in this build. Pending scores retain their original season and ruleset when retried.",
+        "A second browser tab can no longer mount a competing copy of the same profile. Saving and browser reload wait for confirmed persistence; blocked or failed saves remain visible with a retry action.",
+        "Battle Tempo connects weapon-skill critical hits to attack tempo and normal-attack critical hits to weapon-cooldown recovery. Haste remains an independent way into the tempo route; support skills and spells do not receive weapon-cooldown recovery.",
+        "Armor Break is now an offensive weapon cooldown. Expose Weakness adds critical chance against Armor-Broken targets; Shattering Sweep spreads part of the hit and the Armor break to nearby enemies. Both upgrades can be used together.",
+        "Heavy Strike can combine Seismic’s delayed 60% damage wave with Titan’s 60% Armor Penetration and doubled boss damage. Execution scales from 450–900% Attack with missing target HP; kills recover 4 seconds of cooldown, Pursuit adds another 4, and Cruel Verdict rewards attacking your own Wound.",
+        "Rend opens Wounds directly, while Lacerating Strikes remains a passive entry. Mortal Wound doubles capacity on critical wound-opening hits. Blood Rite can combine Sanguine Feast’s retained reserve with Rupturing Rite’s splash payout.",
+        "Blood Rush pays 15% of current HP for a 200% Attack strike and a six-second Attack Speed/lifesteal window. Bloodwake adds normal-attack splash; Deep Frenzy extends the window and increases weapon-hit damage.",
+        "Desperate Strength and Frenzied Reflexes scale weapon damage and attack tempo with missing HP independently of Blood Rush. Fight On heals from normal attacks below half HP. Deathless Rampage gives a three-second Death’s Door window against lethal enemy damage.",
+        "Killing Spree opens a growing normal-attack tempo window. Razor Momentum adds tempo on critical normal attacks, and Hunting Blades adds nearby-target projectiles. Cutthroat Rhythm provides independently expiring tempo stacks without requiring Killing Spree.",
+        "Double Slash follow-up hits can retarget reachable enemies without another payment. Third Cut focuses the finisher; Crosscut spreads follow-up hits. Thousand Cuts adds real extra melee blades based on Attack Speed, including values above the speed cap.",
+        "Rolling Guard reduces the next direct enemy hit after a Dodge. Riposte retaliates on Dodge, and Dancing Edge grants separately expiring Attack Speed stacks. These entries do not require another Dodge skill to be owned.",
+        "Counter Stance, Riposte and Ghost Dance can feed Heavy Counter and Counterwave. Ghost Dance creates timed afterimages; Untouchable turns Dodge above the 65% cap into extra ghostblades. Their extra-hit payouts add together rather than multiplying each other.",
+        "Brutal Force adds flat Attack and Spell Haste adds Cast Speed. Caster/area scaling now distinguishes original spell hits, repeated fields and secondary explosions so copied damage is not scaled twice.",
+        "Avalanche turns Icebreak into three seeking shards; shard-triggered Icebreaks cannot start another Avalanche. Critical Mass adds a payout from existing Poison ticks when a new Poison application lands. Plague Legacy accelerates ticks without increasing their stored damage budget.",
+        "Storm Unbound removes Storm’s stack cap and converts overflow into additional strikes, chain jumps or Discharge afterpulses. After eight seconds without buildup, Storm decays one stack per second instead of disappearing at once.",
+        "Litany of Light advances existing Consecration pulses without adding pulses or duration. Unsetting Sun creates two additional full-strength fields. Judgment, Day of Judgment and Final Verdict now share explicit owned-mark and repeat rules.",
+        "Overflowing Grace converts part of overhealing into a capped temporary shield per recipient. Choir of Mercy fires healing-based Holy lances. Hallowed and Covenant charges pay out once on the first successful normal-attack or directly cast spell contact.",
+        "Forked Dusk adds a full-strength Dusk Lance, while Event Horizon returns through previously struck enemies. Both can work with Night Fracture. Eclipse and After Dusk use owned affliction families and remaining Torment damage without consuming the original effect.",
+        "Gathering Gloom recovers another Shadow cooldown when an original hit finds multiple owned affliction families. Black Wake adds a Veil burst and extends active Dodge; Slip the Noose recovers cooldown once on Dodge. Dark Inspiration stacks expire independently.",
+        "Many Hands adds a regular summon within the skill’s normal unit limits. Summons now spawn near their heroine, spread across reachable enemies and retain their own targeting; friendly summons can pass each other while enemies and walls still block movement.",
+        "Summoner routes track regular slots, echoes, Momentum and command charges. Rally and Shared Shelter support the heroine and her units; Shared Edge, Aegis and Stormwater use their own wound, shield and elemental contact rules.",
+        "Loaded Dice turns Crit Chance above 100% into additional Crit tiers. Walking Fortress adds a shield-based shock without consuming shields. Too Big to Miss adds a damage-only hit in an area’s inner third. Friendly Fire lets nearby summons echo an original projectile without starting recursive projectile chains.",
+        "Item bases have revised stat routes, including Runic Mail for Spell Power and Ritual Robe for summon damage/duration. Area Radius and Area Hit Damage can roll as loot affixes; Cast Speed and general Cooldown Reduction are available across weapon families.",
+        "Affix type, tier and value roll separately. T1 is strongest; rarity determines affix count. Rarity upgrades preserve existing tiers and values, while rerolls choose all three again. Tap a tier badge for its ranges, level gates and actual eligible reroll pool.",
+        "Loot is resolved one item at a time, including crafting and Collect, before the next queued item becomes available. Affix comparisons use shared glass panels with clearer quality ranges and restrained tier effects. Unavailable or exhausted crafting/offer actions are hidden.",
+        "STR, DEX and INT now have the same per-point effects for every class. Attribute details separate base points, earned points and gear contributions. Tap a reward’s level notice to inspect the complete banked-level gain rather than only the last level.",
+        "Collect 1 unlocks at Mastery 4 instead of 6. Heroine selection shows Mastery beneath each portrait and sorts by Mastery; long-press still opens management. The library has separate Continue and Nightmare entry cards.",
+        "Skill spenders stay after cooldown skills while preserving your order within each group. Dragging any skill pauses combat until drop or cancel; tapping opens details. Individual spells can no longer be disabled.",
+        "Optional onboarding now follows actual progression through starter choice, equipment, crafting, skill order and Nightmare. Invitations appear in the quiet library instead of interrupting a run; Later and Skip remain available.",
+        "Mobile Web uses a portrait layout and corrected viewport/DPR sizing and touch input. Settings now group Performance, Audio and Advanced; the default frame limit is 60 FPS, with 120 FPS still selectable and an existing explicit choice preserved.",
+        "High Performance Mode combines reduced Poolrooms water effects and fewer fire particles. Settings and detail popups stay within resized screen bounds. Reward reveals have clearer motion and sound; a reveal tap does not also accept the choice underneath.",
+        "Updated skill and item art, themed icons, Holy/Shadow cast cues and Dusk Lance visibility. Skill descriptions, live scaling, affix restrictions and existing Unique item descriptions now use current rules consistently.",
+        "Reduced repeated targeting, stat, summon, status and HUD work."
+      ]
+    },
+    {
+      "build": "20261120T002145192147Z",
+      "title": "Grindmode, caster escalation and reliable Nightmare runs",
+      "summary": "Fire and Lightning gain new skill, resource and survival interactions. Nightmare selection, shared gear and browser recovery have been updated.",
+      "changes": [
+        "Unlock Grindmode across heroines and bank gear decisions until a run ends, with optional 1.5x simulation speed.",
+        "Build around Storm, Mana Discharge, independent Fire fields, finite repeats and Mana Incarnate's mana-based life pool.",
+        "Keep Nightmare tiers through retries and menu navigation. Use separate Continue and Nightmare tickets, a redesigned selection screen and current difficulty/event bonuses.",
+        "Sort shared gear with protected favorites, reuse common starter gear, and manage profile names and connection status from the library.",
+        "Fixed stale skill replacement screens and improved confirmed checkpoint restart and PositionWorklet audio recovery."
+      ]
+    },
+    {
+      "build": "20261119T210309059233Z",
+      "title": "Local results, heroine loadouts and clearer combat details",
+      "summary": "Nightmare results are saved locally, and playtest data and public scores now share one consent choice. Heroines, saved builds and combat details have updated interfaces.",
+      "changes": [
+        "Keep Nightmare results locally and retry pending score publication after reconnecting. One consent choice covers playtest data and public scores.",
+        "Manage shared equipment through heroine loadouts. Saved-build previews show active sets and passive changes, and saving prefers an empty build slot.",
+        "Inspect live skill values and scaling in mobile popups, including updated caster and summon equipment effects.",
+        "Reset skill cooldowns when advancing between dungeons. Rendering recovery can restart the game from its saved checkpoint after WebGL context loss.",
+        "Fixed checked Poolrooms rendering, scaling-view callbacks and bounded render-target recovery failures."
+      ]
+    },
+    {
+      "build": "20261113T163616920089Z",
+      "title": "Summoner builds and continuous Arena runs",
+      "summary": "Arena runs now move through a continuous corridor with 15 reward stops. Holy, Shadow and summon builds have new skills, and Herbert is available for training from the Heroines menu.",
+      "changes": [
+        "Travel between Arena encounters without leaving the corridor. Each full route has 15 item rewards.",
+        "Train with Herbert from Heroines and open the damage breakdown from the five-second DPS display.",
+        "Build around Holy, Shadow and allied summons with new skills, companion upgrades, hybrid affixes and summon art.",
+        "Normal starters now offer up to three active skills from expanded class pools. Your equipped gear carries into the run.",
+        "Updated combat audio and HUD feedback, including separate indicators for summon tempo, charges and echoes."
+      ]
+    },
+    {
+      "build": "20261112T235748633910Z",
+      "title": "Smoother dungeon scaling and clearer combat HUD",
+      "summary": "Enemy stats now scale more evenly from Dungeon 1 through 5. Combat warnings and HUD labels are easier to read, and the guide portrait appears while she speaks.",
+      "changes": [
+        "Enemy health and damage now scale by consistent steps between dungeon tiers, including bosses and their reinforcements.",
+        "Adjusted damage bursts and warning times on selected enemy attacks.",
+        "Added shadows to arena labels and route markers, and removed the backgrounds behind damage icons.",
+        "The guide portrait fades out after dialogue, and arena route labels stay within the screen edges."
+      ]
+    },
+    {
+      "build": "20261112T230239790748Z",
+      "title": "Boss tuning and active-first rewards",
+      "summary": "Arena bosses now use profiles for the dungeon tier where you fight them. When a level break offers several skill picks, active choices come first.",
+      "changes": [
+        "Boss and reinforcement health and damage use tier-specific values across Dungeons 1–5.",
+        "Boss fights have finite healing, shield and summon budgets that persist when you resume an arena.",
+        "Boss enemies use a dedicated 3× attack coefficient for Heavy Strike.",
+        "Resolve all earned active skill offers before passive offers. Passive rolls then use the build you just chose."
+      ]
+    },
+    {
+      "build": "20261112T220828035369Z",
+      "title": "Heroine Mastery and clearer skill descriptions",
+      "summary": "Each heroine now earns her own Mastery, and skill descriptions are easier to scan. Arena routes have revised rewards, a wider boss pool and rare events you can spot during a run.",
+      "changes": [
+        "Mastery unlocks up to three saved winning builds, Collect, Normal offer controls and cosmetics for each heroine.",
+        "Skill descriptions and upgrade reminders are shorter. Build Direction shows the themes your build has invested in, and skill details use matching theme chips.",
+        "Lightning, Fire, Poison and Bleed have been reworked. Lightning can strike in salvos or chain between enemies, and Bleed stores damage in wounds that stronger physical hits can deepen.",
+        "Bosses can appear across all five dungeon tiers and scale to their destination. Normal rewards follow actual level-ups, and the final Normal boss now drops loot.",
+        "Rare events can appear between waves or tie a find to an enemy group. Reward popups keep their size while you inspect choices, and combat has new cues for skill hits, heals and buffs."
+      ]
+    },
+    {
+      "build": "20261112T151403767312Z",
+      "title": "Music, starter upgrades and Arena flow",
+      "summary": "The Dream Library and all five dungeons have their own music. Arena runs now show your route on a live star map, and skill offers give more builds a chance to come together.",
+      "changes": [
+        "Set separate Master, Music and Sound effects volumes in Settings. The mixer remembers your choices across restarts.",
+        "Added eight modifiers across Bleeding Cut, Double Slash, Bulwark and Frost Grasp. Owned modifiers stay inactive until their required base skill is available.",
+        "Skill offers use build fit as a weight. The Actives and Passives pages show the theme mix for each offer pool.",
+        "Newly picked cooldown skills slot in before spenders while preserving the order of existing skills. Arena level transitions continue automatically when there is no reward decision.",
+        "The star map follows the seeded Arena route and scrolls to the current encounter. Added Luna dialogue and updated Arena effects."
+      ]
+    },
+    {
+      "build": "20261112T130846086183Z",
+      "title": "Nightmare and public highscores",
+      "summary": "Nightmare opens after a full Hard clear with that heroine. The hub now has public highscores for Nightmare, with a separate opt-in to share your future qualifying times.",
+      "changes": [
+        "Clear each Nightmare tier to unlock the next one for that heroine. Scores count active attempt time across the full run.",
+        "Arena encounter compositions are seeded, and the run guide shows the Twins encounter.",
+        "The arena progress strip shows encounter milestones. Boss rewards have a short reveal you can tap to skip.",
+        "Browse Nightmare highscores by tier from the hub. Publishing future qualifying scores requires a separate opt-in, and adding a display name is optional."
+      ]
+    },
+    {
+      "build": "20261112T114957009657Z",
+      "title": "Arena becomes the main game",
+      "summary": "Normal and Hard are now the only regular run modes. This update starts everyone on a fresh profile and resets previous unlocks, gear, saved builds and active runs.",
+      "changes": [
+        "Start Normal or Hard from the hub. The original dungeon route and Champion Trials have been removed.",
+        "Manage gear per heroine. Normal starts with a fresh skill build, and a winning build unlocks Hard for that heroine.",
+        "Continue a saved Arena run from the hub. Gear carried into a run stays in the heroine’s collection if you replace it during the run.",
+        "Opt-in playtest reports now track Arena difficulty, clears, build choices and gear progression."
+      ]
+    },
+    {
+      "build": "20261111T230417081421Z",
+      "title": "Normal Dream, Hard and heroine progression",
+      "summary": "Normal Dream is now the main arena route. Each heroine can keep her gear and a winning build, then take that build into Hard.",
+      "changes": [
+        "Play Normal Dream through 15 arenas. Save a winning Normal build to unlock Hard for that heroine. Hard starts with the saved skills and current gear and skips XP and skill drafts.",
+        "Manage each heroine’s equipment in the Heroines menu. Compare, keep or replace her saved winning build after a Normal victory. The former dungeon run is in the Developer Tools archive.",
+        "Chill stacks can trigger Freeze and Icebreak. Cascade can hit already frozen enemies without removing Freeze, and Frostfire Orb scales with both Fire and Frost Power.",
+        "Normal shows banked levels and catches the XP display up during build breaks. After a camera drag, the view returns automatically after three seconds.",
+        "Checkpoints from earlier rules require a fresh run. Hero unlocks and remaining pulls carry forward."
+      ]
+    },
+    {
+      "build": "20261111T162056835644Z",
+      "title": "Dream V2 from the main hub",
+      "summary": "The Dream Library now offers separate V1 and V2 tickets. V2 opens the full arena route with a heroine from your unlocked roster.",
+      "changes": [
+        "Choose Dream V1 for the original dungeon run or Dream V2 for the full arena route directly from the hub.",
+        "Pick an unlocked heroine for a fresh V2 run, or continue from the V2 checkpoint.",
+        "Return to the hub from V2 results or retry the same arena setup. V1 and V2 keep separate checkpoints.",
+        "Checkpoints saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
+      "build": "20261111T154658824843Z",
+      "title": "Full arena route and skill priority controls",
+      "summary": "Pacing Prototype now has a six-arena Short run and a fifteen-arena Full run. Active skills show their priority and highlight where they will land when dragged.",
+      "changes": [
+        "Choose Full run in Developer Mode to fight through five dungeon tiers with a boss at the end of each tier.",
+        "Arena enemies enter in formations from the right and approach the fight from their own lane. The hero starts on the left with a fixed arena camera.",
+        "Drag active skills to change their casting priority. Numbered slots, a drag preview and a highlighted drop target show the new order.",
+        "Fixed champion drag-and-drop setup in the Archive and made empty equipment slots non-interactive.",
+        "Older run, trial and prototype checkpoints require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
+      "build": "20261111T144440333943Z",
+      "title": "Arena mini-run and skill details",
+      "summary": "Pacing Prototype now takes place in six arenas with a centred camera. Reward cards now link to the full skill details.",
+      "changes": [
+        "Fight six authored encounters with flanking waves, ranged pressure and a commander who buffs surviving enemies.",
+        "Build breaks after arenas 1, 3 and 5 advance you to levels 3, 6 and 9 and restore HP and mana.",
+        "Arena progress uses a separate save and resumes from the start of the current arena. Earlier runs, trials and prototypes require a restart. Hero unlocks and remaining pulls stay available.",
+        "Open full skill details from a reward card to see effective values and learned modifiers.",
+        "Combat sound, reduced Poolrooms effects and extra fire particle settings now persist after restarting the game."
+      ]
+    },
+    {
+      "build": "20261111T135650440061Z",
+      "title": "Crossbows, ranged combat and Pacing Prototype v2",
+      "summary": "Crossbows join the ranged weapon pool, and combat targeting now uses range and valid targets without wall sight checks. Pacing Prototype v2 starts at level 1 and tests three combat sections with two build breaks.",
+      "changes": [
+        "Added a slow physical crossbow family with bow range. Heavy Shot now hits a selected target, and Prism Lens adds a bounce that grows stronger along its path.",
+        "Ranged projectiles no longer pierce through enemies. Walls no longer block valid attacks, area effects or bounces within range. Walls still constrain movement.",
+        "Pacing Prototype v2 uses real class starter choices, three combat sections and two build breaks. The commander buffs surviving enemies until he falls.",
+        "Ability reward cards now flip to reveal the skill before you choose it.",
+        "Runs and trials saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
+      "build": "20261110T003918660734Z",
+      "title": "Pacing Prototype",
+      "summary": "Developer Mode now includes a short, separately saved Pacing Prototype. It tests two combat sections, a build break and a Poolcaller fight.",
+      "changes": [
+        "Open Pacing Prototype in Developer Mode and choose an On-Hit, Poison or Fire preset and a seed.",
+        "Face overlapping enemy groups with warnings before reinforcements. Between sections, choose a passive, decide whether to take an active skill, and resolve an item before continuing.",
+        "Resume at the start of the current section from a separate prototype save. Prototype runs leave normal progression alone, and the results screen can copy a test report.",
+        "Runs and trials saved under earlier rules require a restart. Hero unlocks and remaining pulls stay available."
+      ]
+    },
+    {
+      "build": "20261109T234912424512Z",
+      "title": "Hero unlocks and Champion Trial results",
+      "summary": "Hero unlocks and remaining pulls survive restarting after an incompatible saved run or trial. This build also includes the Champion Trial results fix.",
+      "changes": [
+        "Preserved unlocked heroines and remaining pulls when restarting after an incompatible saved run or trial. The original save stays backed up.",
+        "Fixed recursive results navigation when a timed Champion Trial ends."
+      ]
+    },
+    {
+      "build": "20261109T230844938167Z",
+      "title": "Cached startup, combat readability and playtest privacy",
+      "summary": "The start screen now offers Play when the current build is cached. This update also improves combat readability, simplifies peaceful encounters and updates voluntary playtest sharing.",
+      "changes": [
+        "Play appears when both game files are cached; the download prompt estimates only the files still needed.",
+        "Added compact skill details, hold-to-inspect controls and clearer combat numbers on phones. Level-up effects now appear on the reward cards.",
+        "Peaceful encounters use shorter approach and exit paths; active skills are disabled outside combat. Navigation skips detailed searches between disconnected areas.",
+        "Fixed a crash when opening the result after a timed Champion Trial.",
+        "Playtest sharing requires a fresh opt-in with 18+ confirmation. Withdrawing consent stops uploads and requests deletion of shared data, with retry when back online."
+      ]
+    },
+    {
+      "build": "20261106T144243658746Z",
+      "title": "Solo runs, Blacksmith and combat performance",
+      "summary": "Normal runs are now solo, with a Blacksmith visit at the start of Dungeon 4. This update also changes crafting access, reduces repeated combat work and refreshes menu and dungeon visuals.",
+      "changes": [
+        "Reduced repeated combat work with shared actor lookups, budgeted path searches and cached runtime stats.",
+        "Removed mercenary recruitment from normal runs. The Blacksmith at the start of Dungeon 4 lets you choose one equipped item, craft it with your materials, then finish or skip the visit.",
+        "Craft unresolved drops before equipping them. Accepted and merchant gear stays sealed outside the Blacksmith session; replacement comparisons no longer reveal randomized salvage materials.",
+        "Character, damage and settings popups now share glass panels, compact value tables and sizing based on their contents. Removed the duplicate portrait from the settings popup.",
+        "Added themed entrances and open/closed exits for the poolrooms, suburb, mall and windmill dungeons."
+      ]
+    },
+    {
+      "build": "20261106T133633251631Z",
+      "title": "Download prompt and rendering fixes",
+      "summary": "The loading screen now asks before downloading the game and shows its size and progress in MB. Small effect and reward polygons also render more reliably.",
+      "changes": [
+        "Added a download confirmation with the game-file size, Download & play and Not now. The large engine and game files start downloading only after confirmation; loading progress shows loaded and total MB.",
+        "Postponing the download or closing during loading remains a session diagnostic rather than a bug report. Genuine download, startup, JavaScript and engine errors remain reportable.",
+        "Fixed polygon triangulation errors in shrinking combat fragments and shared ticket/reward surfaces while preserving their visible shapes."
+      ]
+    },
+    {
+      "build": "20261105T140652191084Z",
+      "title": "Playtest upload improvements",
+      "summary": "Playtest uploads now respect service retry times and keep daily-limit pauses after reloading. Recording and uploads read less local history.",
+      "changes": [
+        "Playtest uploads honor server retry delays. Daily-limit pauses persist across page reloads and reconnects while pending records remain queued within the existing storage limit.",
+        "Reduced local history reads during playtest recording and uploads. Existing acknowledged history remains available for local export."
+      ]
+    },
+    {
+      "build": "20261104T214321945322Z",
+      "title": "Equipment and loot rework",
+      "summary": "Loot now equips directly or becomes crafting materials. Replacing equipment automatically salvages the previous item, and equipped gear can be crafted between fights.",
+      "changes": [
+        "Removed the backpack and backup item slots. Only equipped gear is retained; each pending loot item must be equipped or salvaged before continuing.",
+        "Equipping loot or accepting the free merchant item replaces the same-slot item and salvages it once. Comparisons show the replacement material and skills incompatible with the new weapon.",
+        "Replaced inventory swapping with a four-slot equipment screen. Crafting works on equipped hero gear outside combat and on pending loot; companion equipment remains fixed."
+      ]
+    },
+    {
+      "build": "20261104T151107051426Z",
+      "title": "Combat and build rework",
+      "summary": "Reworked weapon combat, class starts and build upgrades, with weapon drops that better reflect your build. Navigation now does less repeated work in crowded fights.",
+      "changes": [
+        "Added class-specific starter choices with a core skill and matching weapon. Weapon enhancers now combine on the original autoattack in configured order, with shared action-level mana budgets.",
+        "Raised Heavy Strike to 1,000% attack and added Focused Discharge (+60% direct Lightning Strike damage). Reverberation offers now consider effective lightning sources, including Storm Cabinet, while remaining available without one.",
+        "Weapon drops and merchants now roll a weapon family before a specific weapon. Matching skills provide the main weighting bonus, capped at 2x; other weapon families remain available.",
+        "Skill maps now distinguish prerequisites, upgrades, synergies, alternatives and exclusions. Added 24 build-direction presets; compatible upgrades can be combined instead of treated as exclusive forms.",
+        "Reduced repeated collision and pathfinding work in crowded fights. Blocked actors wait briefly before retrying instead of continuously searching for another attack position. Added a persistent 60/120 FPS setting, with 120 FPS as the default."
+      ]
+    },
+    {
+      "build": "20261104T130359766724Z",
+      "title": "Dream Ticket fix :3",
+      "summary": "Fixed a Dream Ticket rendering error. This update also simplifies playtest consent and reduces upload data.",
+      "changes": [
+        "Fixed a polygon triangulation error in the Dream Ticket shimmer when returning from the hero gallery to the start screen.",
+        "Replaced the initial playtest consent screen with a compact dialog and expandable data details.",
+        "Reduced playtest upload size with compressed batches and smaller build snapshots."
+      ]
     }
-    phase='reloading';mark(automatic?'automatic_restart':'user_restart');
-    clearInterval(timer);location.reload();
-  }
-  function begin(){
-    if(!visible){phase='retry';remaining=0;return;}
-    attempts++;remaining=budget;progress();
-    if(checkpoint){sync();return;}
-    phase='save';requestId++;mark(save?'save_requested':'bridge_missing');
-    if(save)try{save(requestId);}catch{problem('bridge_exception');}
-  }
-  function sync(){
-    phase='sync';remaining=budget;
-    const runtime=engine?.rtenv;
-    if(!runtime?.dreamSyncPersistent){problem('sync_bridge_missing');return;}
-    // If a previous ACK was lost but the actual transaction ended, a NEW flush
-    // is safe. If IDBFS is still active, await it rather than overlap transactions.
-    if(flight&&runtime.dreamStorageState?.().syncing!==false){mark('sync_still_pending');return;}
-    const token=++flushId;flight=true;mark('sync_requested');
-    Promise.resolve().then(()=>runtime.dreamSyncPersistent()).then(()=>{
-      if(token!==flushId)return;flight=false;durable=true;mark('sync_confirmed');
-      phase='ready';tick();
-    },error=>{
-      if(token!==flushId)return;flight=false;
-      const code=['storage_unavailable','storage_sync_failed'].includes(error?.message)?error.message:'sync_exception';
-      if(phase==='decision'){mark(code);return;}problem(code);
-    });
-  }
-  function tick(){
-    const now=performance.now(),elapsed=Math.min(1000,Math.max(0,now-last));last=now;
-    if(!visible||document.visibilityState!=='visible')return;
-    shownAfter+=elapsed;if(shownAfter>=1000)reveal();
-    if(phase==='decision'){decisionButtons();return;}
-    if(phase==='ready'){reload(true);return;}
-    if(!['save','sync','retry'].includes(phase))return;
-    remaining-=elapsed;
-    if(remaining>0)return;
-    if(phase==='retry')begin();else problem(phase==='save'?'save_ack_timeout':'sync_ack_timeout');
-  }
-  let seasonFlight=null,seasonGeneration=0,seasonSaveStatus='';
-  window.dreamContextRecovery={
-    async flushStorage(fs){
-      // Foreground deadlines belong to the state machine, not wall-clock timers
-      // that expire while Android has suspended the game.
-      while(fs._syncing)await new Promise(resolve=>setTimeout(resolve,25));
-      if(!fs.is_persistent())throw new Error('storage_unavailable');
-      const error=await fs.sync();if(error)throw new Error('storage_sync_failed');
-    },
-    get seasonSaveStatus(){return seasonSaveStatus;},
-    beginSeasonSave(){
-      const generation=++seasonGeneration;seasonSaveStatus='saving';
-      // Retry joins a pending real transaction; if its ACK was lost but FS is idle,
-      // issue a new flush. Old completions cannot acknowledge the newer attempt.
-      if(!seasonFlight||engine?.rtenv?.dreamStorageState?.().syncing===false){
-        const task=Promise.resolve().then(()=>window.dreamContextRecovery.persistProfile());
-        seasonFlight=task;
-        task.then(()=>{if(seasonFlight===task)seasonFlight=null;},()=>{if(seasonFlight===task)seasonFlight=null;});
-      }
-      seasonFlight.then(()=>{if(generation===seasonGeneration)seasonSaveStatus='saved';},()=>{if(generation===seasonGeneration)seasonSaveStatus='error';});
-    },
-    async persistProfile(){
-      if(!engine?.rtenv?.dreamSyncPersistent)throw new Error("sync_bridge_missing");
-      await engine.rtenv.dreamSyncPersistent();
-    },
-    attachEngine(value){engine=value;},
-    install(callback){save=callback;if(callback&&phase==='save'&&visible)try{save(requestId);}catch{problem('bridge_exception');}},
-    saved(id,ok){
-      if(id!==requestId||!['save','retry'].includes(phase))return;
-      if(!ok){problem('save_rejected');return;}
-      checkpoint=true;mark('save_confirmed');sync();
-    },
-    get status(){return {phase,attempts,checkpoint,durable};}
-  };
-  document.addEventListener('visibilitychange',()=>{
-    visible=document.visibilityState==='visible';last=performance.now();
-    if(!lost)return;mark(visible?'visible':'hidden');
-    if(visible)tick();
-  });
-  document.addEventListener('webglcontextlost',event=>{
-    if(event.target!==document.getElementById('canvas'))return;
-    event.preventDefault();if(lost)return;lost=true;
-    const start=()=>{progress();mark('context_lost');last=performance.now();begin();timer=setInterval(tick,250);};
-    if(document.body)start();else addEventListener('DOMContentLoaded',start,{once:true});
-  },true);
-  // Guard cleanup requires 30 seconds of visible initialized rendering, not a
-  // wall-clock timeout (background suspension is excluded).
-  let previous=performance.now();
-  const healthTimer=setInterval(()=>{
-    const now=performance.now(),elapsed=Math.min(500,Math.max(0,now-previous));previous=now;
-    if(lost){clearInterval(healthTimer);return;}
-    if(!save||document.visibilityState!=='visible')return;
-    const gl=document.getElementById('canvas')?.getContext('webgl2');
-    if(!gl||gl.isContextLost())return;
-    healthy+=elapsed;
-    if(healthy>=30000){try{sessionStorage.removeItem(guardKey);}catch{}clearInterval(healthTimer);}
-  },250);
-})();
+  ]
+}
