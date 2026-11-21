@@ -31,27 +31,27 @@
   },
   {
     "path": "build-manifest.json",
-    "bytes": 399890,
+    "bytes": 412789,
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "91c5f7ab9eaefddbd8d15b9ab98243794ba3bbbbf34070dd49c4dd8ea24d2706"
+    "sha256": "fc3623bd1026a2e4b967d679e31162f709bf0a1b0f2f130f9fe5a1eb2605b157"
   },
   {
     "path": "changelog.html",
-    "bytes": 37229,
+    "bytes": 38588,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "c69caadec945b48d8d2854ec726c58624c95b54378fc97d94f6aa9d553a87ad2"
+    "sha256": "8313b3b279cc8cc9bc99ad7a31e261c0d96fb0119b96c2f11e63008c970d345f"
   },
   {
     "path": "changelog.json",
-    "bytes": 33245,
+    "bytes": 34526,
     "parts": [
       "006-000.bin"
     ],
-    "sha256": "95c4f0215725c2a8c082313a8595fdee6439428ba16992d4032dbb6a157a9751"
+    "sha256": "c5e6214ab4cd0c7074760062c42a103dfde12a6c4008a30d7291d01717d8b7e9"
   },
   {
     "path": "context_recovery.js",
@@ -71,11 +71,11 @@
   },
   {
     "path": "download_gate.js",
-    "bytes": 5059,
+    "bytes": 5683,
     "parts": [
       "009-000.bin"
     ],
-    "sha256": "fbc77e72786d03b2f0276e22a7f10579a297046f73905eb8a89d7c957b50a025"
+    "sha256": "192c63fa90150a5e7fe1b4078a4bf19f8db5e610f179a80f9f8c6538906ae7a5"
   },
   {
     "path": "dreamcore-180.png",
@@ -143,11 +143,11 @@
   },
   {
     "path": "index.html",
-    "bytes": 12276,
+    "bytes": 12543,
     "parts": [
       "018-000.bin"
     ],
-    "sha256": "211f3dc43fd6dbe4ce3467e5507cad48874fd7fc538ec4cccf23993ba8091fbe"
+    "sha256": "35e60e9c630e21caabae3e483cce207c6f077e1d9efab00e798edb490c2330b8"
   },
   {
     "path": "index.icon.png",
@@ -159,15 +159,15 @@
   },
   {
     "path": "index.js",
-    "bytes": 295083,
+    "bytes": 294809,
     "parts": [
       "020-000.bin"
     ],
-    "sha256": "b45bf69ed96800b82a3575dc20fce4f641d220e890b75981f04e5661cba1cfac"
+    "sha256": "c3905f7ef883a59dcf6664d86e2ef1fd958f18cdd1bb640f29c04797643bd1c0"
   },
   {
     "path": "index.pck",
-    "bytes": 94542564,
+    "bytes": 95054092,
     "parts": [
       "021-000.bin",
       "021-001.bin",
@@ -175,7 +175,7 @@
       "021-003.bin",
       "021-004.bin"
     ],
-    "sha256": "a8a978e5a6b90a68bc7a6634a3643d8cca8bcd089ef0dbd0eb66e40c90840b9f"
+    "sha256": "85f0c497335983715081a9a747883f985b811aaea34717a8552cc19c1f03b04a"
   },
   {
     "path": "index.png",
@@ -228,49 +228,57 @@
   },
   {
     "path": "Licenses/NotoSansMath-OFL.txt",
-    "bytes": 4473,
+    "bytes": 4380,
     "parts": [
       "028-000.bin"
     ],
-    "sha256": "755c0e2dec6c2371ff6746dee281ad0c038b38a9b265039b0e340f3e107a6929"
+    "sha256": "403a95275b469061b7d4371c328e0ada3bc7d63328abe2e88aad5cd243b2fe21"
   },
   {
     "path": "Licenses/NotoSansSymbols-OFL.txt",
-    "bytes": 4476,
+    "bytes": 4383,
     "parts": [
       "029-000.bin"
     ],
-    "sha256": "dee1e0758c6ce86a7aee4aa812387de573fbe1b9a78bfc8332515fac2762aba5"
+    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
   },
   {
     "path": "Licenses/NotoSansSymbols2-OFL.txt",
-    "bytes": 4476,
+    "bytes": 4383,
     "parts": [
       "030-000.bin"
     ],
-    "sha256": "dee1e0758c6ce86a7aee4aa812387de573fbe1b9a78bfc8332515fac2762aba5"
+    "sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0"
+  },
+  {
+    "path": "loader_download.js",
+    "bytes": 712,
+    "parts": [
+      "031-000.bin"
+    ],
+    "sha256": "db3b04cf725573630f96d6cbee9a8d375240b9da5f10ae6eaa45be2f516ae3c5"
   },
   {
     "path": "observatory-config.js",
     "bytes": 291,
     "parts": [
-      "031-000.bin"
+      "032-000.bin"
     ],
     "sha256": "4ddc0f6490ead519ec12edac31cd4647b97389f9f54a827c9fb3011ba46654e3"
   },
   {
     "path": "observatory.js",
-    "bytes": 45236,
+    "bytes": 45290,
     "parts": [
-      "032-000.bin"
+      "033-000.bin"
     ],
-    "sha256": "61df3bb04a44f01ec804ca54582f19dfca3e82828d48cf66b5f914c3b5311100"
+    "sha256": "78e58d78308bdac0e8c96c88631837982b73d218e397022f04078f0fb1c60df9"
   },
   {
     "path": "playtest_privacy.js",
     "bytes": 938,
     "parts": [
-      "033-000.bin"
+      "034-000.bin"
     ],
     "sha256": "fd22c4640673b100eeddba61abd377e55129884970b7f43de1d6763c6b8d1109"
   },
@@ -278,39 +286,39 @@
     "path": "portrait.js",
     "bytes": 676,
     "parts": [
-      "034-000.bin"
+      "035-000.bin"
     ],
     "sha256": "8527e8e7cdee3559639ba337581e52bafb4aace0a9ba241bf8ee1180f37a3666"
   },
   {
     "path": "privacy.html",
-    "bytes": 8709,
-    "parts": [
-      "035-000.bin"
-    ],
-    "sha256": "041f2f8022c29cb1109bd57f03d7d6a3cd1743556e89032d44383532a62dd573"
-  },
-  {
-    "path": "profile_owner.js",
-    "bytes": 832,
+    "bytes": 9118,
     "parts": [
       "036-000.bin"
     ],
-    "sha256": "3b9b2a35fb2cf44d563333a497a53c2caba9c92e2eaf3934f9622ef30167b373"
+    "sha256": "1e996d94b09e0c10b1a3842781841d3295ef7f09be469fd8840a6309314eb20d"
   },
   {
-    "path": "release.json",
-    "bytes": 4799,
+    "path": "profile_owner.js",
+    "bytes": 996,
     "parts": [
       "037-000.bin"
     ],
-    "sha256": "716e4f3675a16ee5f436280594273edf6d2390b0bb0c596773b78a3d122f2a19"
+    "sha256": "6b099bb3484cbd036062316df657bd940814b6b5cacb28f27c3183a8a2a33283"
+  },
+  {
+    "path": "release.json",
+    "bytes": 5747,
+    "parts": [
+      "038-000.bin"
+    ],
+    "sha256": "4243b8e2d73ad7941bb83610cd5b6dc492d8800f3d765a693c26e525dc2e578c"
   },
   {
     "path": "render_recovery.js",
     "bytes": 3805,
     "parts": [
-      "038-000.bin"
+      "039-000.bin"
     ],
     "sha256": "a7b6c1fe16feadf809c54bbe977b6322d8cfa6c318a1bda19a35483e88e4427b"
   },
@@ -318,7 +326,7 @@
     "path": "sleeping-trio-v1.webp",
     "bytes": 113090,
     "parts": [
-      "039-000.bin"
+      "040-000.bin"
     ],
     "sha256": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   }

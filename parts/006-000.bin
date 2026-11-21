@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "build": "20261121T151607054154Z",
+      "title": "Boss builds, Nightmare loot and combat feedback",
+      "summary": "Boss encounters have new builds and phases, with revised Hard/Nightmare rewards. Your existing Season 1 progress stays intact.",
+      "changes": [
+        "Twelve boss profiles across eleven encounters now have distinct skill builds, phases and resource budgets.",
+        "Dream Intensity now applies only in Hard/Nightmare. Nightmare enemies are larger and clearly marked.",
+        "Hard/Nightmare rewards mix gear with crafting supplies, while boss and special rewards stay items. Gear can reach levels 25–29 through progression; level 30 can drop from Nightmare 10+.",
+        "The first Normal clear with each heroine awards one summon pull. Repeat clears do not farm extra pulls.",
+        "Grind crafting and reward screens fit better. Refreshed equipment-role, Unique and status icons help identify effects; mobile text fields support the software keyboard.",
+        "Updated combat effects, reduced repeated combat/rendering work and bounded game loading to improve stability.",
+        "With optional playtest sharing enabled, defeats now include private damage and fatal-hit reports for the Observatory."
+      ]
+    },
+    {
       "build": "20261121T012944111786Z",
       "title": "Combat movement hotfix",
       "summary": "Fixed a combat stall where enemies and your heroine could wait for each other instead of attacking.",

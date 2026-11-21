@@ -1,65 +1,98 @@
-/* Retry a failed main render target at most twice per failure episode, without reloading
-   gameplay or changing saves. Persistent/driver failures remain diagnostic errors. */
-(() => {
-  let notify=null, pending=false, attempts=0, retrying=false, failed=false;
-  // Observation only: never query getError/checkFramebufferStatus or change GL state.
-  // Keep a short consented event history; no timers, extra reports or renderer strings.
-  let observations=0;
-  const lifecycle=[];
-  const allowed=()=>window.dreamPlaytestPrivacy?.permits()===true &&
-    window.dreamDiagnostics?.mode==='standard';
-  const visibility=()=>document.visibilityState==='visible'?'visible':'hidden';
-  const dimension=value=>Number.isFinite(value)?Math.max(0,Math.min(131072,Math.round(value))):null;
-  function mark(kind){
-    if(!allowed()){lifecycle.length=0;return;}
-    lifecycle.push({kind,at:Date.now(),visibility:visibility()});
-    if(lifecycle.length>8)lifecycle.shift();
-  }
-  document.addEventListener?.('visibilitychange',()=>mark('visibility'));
-  for(const kind of ['webglcontextlost','webglcontextrestored'])
-    document.addEventListener?.(kind,event=>{if(event.target===document.getElementById('canvas'))mark(kind);},true);
-  for(const kind of ['resize','pagehide','pageshow'])window.addEventListener?.(kind,()=>mark(kind));
-  function diagnose(message){
-    if(!allowed()){lifecycle.length=0;return;}
-    if(observations>=8)return;
-    observations++;
-    try{
-      const canvas=document.getElementById('canvas'), gl=canvas?.getContext('webgl2');
-      const raw=message.slice('WARNING: Could not create render target, status: '.length).trim();
-      const codes={'0':'zero','36053':'complete','36054':'incomplete_attachment',
-        '36055':'missing_attachment','36057':'incomplete_dimensions','36059':'incomplete_draw_buffer',
-        '36060':'incomplete_read_buffer','36061':'unsupported','36182':'incomplete_multisample'};
-      const lost=gl?gl.isContextLost():null;
-      const query=name=>gl&&!lost?gl.getParameter(gl[name]):null;
-      const viewport=query('VIEWPORT');
-      window.dreamDiagnostics.record({kind:'render_target_allocation',version:1,
-        status:codes[raw]||'unknown',attempt:attempts,retrying,visibility:visibility(),
-        canvas:[dimension(canvas?.width),dimension(canvas?.height)],
-        css:[dimension(canvas?.clientWidth),dimension(canvas?.clientHeight)],
-        window:[dimension(window.innerWidth),dimension(window.innerHeight)],
-        drawing_buffer:[dimension(gl?.drawingBufferWidth),dimension(gl?.drawingBufferHeight)],
-        gl_viewport:viewport?Array.from(viewport).slice(0,4).map(dimension):null,
-        context:gl?(lost?'lost':'available'):'unavailable',
-        max_texture:dimension(query('MAX_TEXTURE_SIZE')),max_renderbuffer:dimension(query('MAX_RENDERBUFFER_SIZE')),
-        lifecycle:lifecycle.map(e=>({kind:e.kind,visibility:e.visibility,age_ms:Math.min(60000,Math.max(0,Date.now()-e.at))}))});
-    }catch{} // Diagnostics must never prevent the original recovery or error delivery.
-  }
-  window.dreamRenderRecovery={
-    install(callback){notify=callback;if(pending&&notify)notify();},
-    failure(message){
-      if(!/^WARNING: Could not create render target, status: /.test(message))return;
-      diagnose(message);
-      failed=true;
-      if(attempts>=2)return;
-      pending=true;if(notify)notify();
+{
+  "schema": 1,
+  "build": "20261121T151607054154Z",
+  "fixes": [
+    {
+      "bug_id": 54,
+      "fix_id": "8c99f7aaf697273a7b1ad0d832eb4b15a92de0363afc2246ed58a6cc84cba088"
     },
-    canRetry(){
-      const canvas=document.getElementById('canvas');
-      const gl=canvas?.getContext('webgl2');
-      return pending&&!retrying&&attempts<2&&document.visibilityState==='visible'&&
-        !!gl&&!gl.isContextLost()&&gl.drawingBufferWidth>0&&gl.drawingBufferHeight>0;
+    {
+      "bug_id": 55,
+      "fix_id": "515fcc80626fbd4953dafb4f45ed3bbefa68307a7994a83ac6eb538ab20fb3e6"
     },
-    beginRetry(){pending=false;attempts++;retrying=true;failed=false;},
-    finishRetry(){retrying=false;if(!failed)attempts=0;}
-  };
-})();
+    {
+      "bug_id": 56,
+      "fix_id": "7bee8ae472ed943630098a01f9c7b0e4fceadb0e54bfa0c50ad3099e2fde8c3c"
+    },
+    {
+      "bug_id": 57,
+      "fix_id": "904c9ea02f1f9dabc56a0d48ea90c30c4788c46f61f5ad7788efd5b3f3051220"
+    },
+    {
+      "bug_id": 59,
+      "fix_id": "f9c4d0f2e7851ec1a573d718811ca2d46b66f6a21d408e2983f534ef910c4019"
+    },
+    {
+      "bug_id": 60,
+      "fix_id": "171d6a0cd6e347a660afe444bf4e844adb629248d49d88d40e07274ee76165de"
+    },
+    {
+      "bug_id": 61,
+      "fix_id": "2e9719fe2df0ca85b82e539137240c02691cd3986b870aae826861e230c7e50e"
+    },
+    {
+      "bug_id": 141,
+      "fix_id": "36b57b8cbf5cf6b57d67ce9b26ed5f4fc8502b63baa608c86e7081435605408e"
+    },
+    {
+      "bug_id": 151,
+      "fix_id": "aa755af3aa62545f3b0a29695403a0c358deddc5b4cdeb54b7e00902bfd09354"
+    },
+    {
+      "bug_id": 186,
+      "fix_id": "f895274fe57746eb8e69a0cd396750da060705477f69100edde903e7cfedd81c"
+    },
+    {
+      "bug_id": 198,
+      "fix_id": "a43d7cae10d41c8fbc9dc7f01574821ac9560b830097f5802c53982d073c814a"
+    }
+  ],
+  "artifacts": {
+    "audio_diagnostics.js": "58091d973d793547c4eaf5fbaa981f0590203e2f7ebbeef24c0b1922c8bba549",
+    "audio_position_worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
+    "audio_recovery.js": "873943b8e0bf6c4fc5bc6642b62f8dd6651463b8dd45aa86a9cf29fc26825bbc",
+    "build-manifest.json": "fc3623bd1026a2e4b967d679e31162f709bf0a1b0f2f130f9fe5a1eb2605b157",
+    "changelog.html": "8313b3b279cc8cc9bc99ad7a31e261c0d96fb0119b96c2f11e63008c970d345f",
+    "changelog.json": "c5e6214ab4cd0c7074760062c42a103dfde12a6c4008a30d7291d01717d8b7e9",
+    "context_recovery.js": "0b17a28883a54fbae2f5638cd32de39f69da4263715fe14c7ca30d7f598b4ff5",
+    "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
+    "download_gate.js": "192c63fa90150a5e7fe1b4078a4bf19f8db5e610f179a80f9f8c6538906ae7a5",
+    "dreamcore-180.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
+    "dreamcore-192.png": "1eafe6dd179508bc0b8775cfd12a59bf9e6fe61d1411e5643e276d1e4976b125",
+    "dreamcore-512.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
+    "dreamcore-64.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
+    "dreamcore.webmanifest": "edc094aeaa90814c0f1dc7059277c6bf507a88e36beb6332244882680e29dc6a",
+    "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
+    "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
+    "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
+    "index.html": "35e60e9c630e21caabae3e483cce207c6f077e1d9efab00e798edb490c2330b8",
+    "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
+    "index.js": "c3905f7ef883a59dcf6664d86e2ef1fd958f18cdd1bb640f29c04797643bd1c0",
+    "index.pck": "85f0c497335983715081a9a747883f985b811aaea34717a8552cc19c1f03b04a",
+    "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
+    "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
+    "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
+    "loader_download.js": "db3b04cf725573630f96d6cbee9a8d375240b9da5f10ae6eaa45be2f516ae3c5",
+    "observatory-config.js": "4ddc0f6490ead519ec12edac31cd4647b97389f9f54a827c9fb3011ba46654e3",
+    "observatory.js": "78e58d78308bdac0e8c96c88631837982b73d218e397022f04078f0fb1c60df9",
+    "playtest_privacy.js": "fd22c4640673b100eeddba61abd377e55129884970b7f43de1d6763c6b8d1109",
+    "portrait.js": "8527e8e7cdee3559639ba337581e52bafb4aace0a9ba241bf8ee1180f37a3666",
+    "privacy.html": "1e996d94b09e0c10b1a3842781841d3295ef7f09be469fd8840a6309314eb20d",
+    "profile_owner.js": "6b099bb3484cbd036062316df657bd940814b6b5cacb28f27c3183a8a2a33283",
+    "render_recovery.js": "a7b6c1fe16feadf809c54bbe977b6322d8cfa6c318a1bda19a35483e88e4427b",
+    "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
+  },
+  "notes": {
+    "title": "Boss builds, Nightmare loot and combat feedback",
+    "summary": "Boss encounters have new builds and phases, with revised Hard/Nightmare rewards. Your existing Season 1 progress stays intact.",
+    "changes": [
+      "Twelve boss profiles across eleven encounters now have distinct skill builds, phases and resource budgets.",
+      "Dream Intensity now applies only in Hard/Nightmare. Nightmare enemies are larger and clearly marked.",
+      "Hard/Nightmare rewards mix gear with crafting supplies, while boss and special rewards stay items. Gear can reach levels 25\u201329 through progression; level 30 can drop from Nightmare 10+.",
+      "The first Normal clear with each heroine awards one summon pull. Repeat clears do not farm extra pulls.",
+      "Grind crafting and reward screens fit better. Refreshed equipment-role, Unique and status icons help identify effects; mobile text fields support the software keyboard.",
+      "Updated combat effects, reduced repeated combat/rendering work and bounded game loading to improve stability.",
+      "With optional playtest sharing enabled, defeats now include private damage and fatal-hit reports for the Observatory."
+    ]
+  }
+}

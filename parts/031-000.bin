@@ -1,6 +1,18 @@
-// Public ingest endpoint. Uploads still require the player's explicit consent.
-window.dreamObservatoryConfig = {
- endpoint: 'https://dreamcore-observatory-ingest.fabeceo.workers.dev',
- // The reviewed notice is available; sharing still requires a fresh opt-in.
- privacyNoticeReady: true
-};
+// Embedded into Godot's preloader by the Web brander.
+function dreamTrackedDownload(response, status, wasm) {
+    const stream = response.body.pipeThrough(new TransformStream({
+        transform(chunk, controller) {
+            status.loaded += chunk.byteLength;
+            controller.enqueue(chunk);
+        },
+        flush() { status.done = true; }
+    }));
+    return new Response(stream, {
+        headers: wasm ? {'Content-Type': 'application/wasm'} : response.headers
+    });
+}
+
+function dreamCompileDownload(response) {
+    if (WebAssembly.compileStreaming) return WebAssembly.compileStreaming(response);
+    return response.arrayBuffer().then(bytes => WebAssembly.compile(bytes));
+}

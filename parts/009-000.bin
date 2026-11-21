@@ -3,7 +3,7 @@
  'use strict';
  const mb=value=>(value/1000000).toFixed(1);
  const cacheName='dreamcore-game-files-v1';
- let files=new Map();
+ let files=new Map(), transfer;
  async function openGameCache(){
   try{return await window.caches?.open(cacheName);}
   catch{return null;}
@@ -16,7 +16,7 @@
   return fetch(entry.url,{mode:'same-origin',cache:'only-if-cached',redirect:'error',signal});
  }
  async function download(entry){
-  const response=await fetch(entry.url);
+  const response=await fetch(entry.url,{signal:transfer.signal});
   if(entry.cache&&response.url===entry.url.href&&response.status===200&&response.body){
    // Copy to site storage alongside the engine read. Large packages can exceed
    // the browser HTTP cache's per-file limit even when space is available.
@@ -25,14 +25,17 @@
   return response;
  }
  window.dreamDownloadGate={
+  get stopped(){return transfer?.signal.aborted;},
   fetchFile(file){
+   if(transfer?.signal.aborted)return Promise.reject(transfer.signal.reason);
    const entry=files.get(file);
    if(!entry)return fetch(file);
    if(entry.response){const response=entry.response;entry.response=null;return Promise.resolve(response);}
    // A verified cache hit must never silently fall back to downloading on retry.
-   return entry.local?readLocal(entry):download(entry);
+   return entry.local?readLocal(entry,transfer.signal):download(entry);
   },
   prepare(config){
+  transfer=new AbortController();
   const total=Object.values(config.fileSizes||{}).reduce((sum,size)=>sum+(Number.isFinite(size)&&size>0?size:0),0);
   const panel=document.getElementById('dream-download');
   const size=document.getElementById('dream-download-size');
@@ -94,8 +97,8 @@
    if(!local)state('downloading');
    resolveStart();
   },{once:true});
-  addEventListener('pagehide',()=>{leaving=true;});
-  addEventListener('pageshow',()=>{leaving=false;});
+  addEventListener('pagehide',()=>{leaving=true;if(started)transfer.abort();});
+  addEventListener('pageshow',event=>{leaving=false;if(event.persisted&&transfer.signal.aborted)location.reload();});
   return {ready, get leaving(){return leaving;},
    progress(current){
     if(!started)return;
@@ -105,8 +108,14 @@
      if(total>0&&current>=total)caption.textContent='Starting the game…';
     }
    },
-   complete(){state('game_started');},
-   failed(){panel.hidden=true;progress.hidden=true;state('download_failed');}
+   occupied(){
+    started=false;
+    progress.hidden=true;
+    caption.textContent='Your game is open in another window.';
+    state('profile_already_open');
+   },
+   complete(){started=false;state('game_started');},
+   failed(){transfer.abort();panel.hidden=true;progress.hidden=true;state('download_failed');}
   };
  }};
 })();

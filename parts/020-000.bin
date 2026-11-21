@@ -325,34 +325,25 @@ const Features = {
 };
 
 const Preloader = /** @constructor */ function () { // eslint-disable-line no-unused-vars
-	function getTrackedResponse(response, load_status) {
-		function onloadprogress(reader, controller) {
-			return reader.read().then(function (result) {
-				if (load_status.done) {
-					return Promise.resolve();
-				}
-				if (result.value) {
-					controller.enqueue(result.value);
-					load_status.loaded += result.value.length;
-				}
-				if (!result.done) {
-					return onloadprogress(reader, controller);
-				}
-				load_status.done = true;
-				return Promise.resolve();
-			});
-		}
-		const reader = response.body.getReader();
-		return new Response(new ReadableStream({
-			start: function (controller) {
-				onloadprogress(reader, controller).then(function () {
-					controller.close();
-				});
-			},
-		}), { headers: response.headers });
-	}
+	// Embedded into Godot's preloader by the Web brander.
+function dreamTrackedDownload(response, status, wasm) {
+    const stream = response.body.pipeThrough(new TransformStream({
+        transform(chunk, controller) {
+            status.loaded += chunk.byteLength;
+            controller.enqueue(chunk);
+        },
+        flush() { status.done = true; }
+    }));
+    return new Response(stream, {
+        headers: wasm ? {'Content-Type': 'application/wasm'} : response.headers
+    });
+}
 
-	function loadFetch(file, tracker, fileSize, raw) {
+function dreamCompileDownload(response) {
+    if (WebAssembly.compileStreaming) return WebAssembly.compileStreaming(response);
+    return response.arrayBuffer().then(bytes => WebAssembly.compile(bytes));
+}
+function loadFetch(file, tracker, fileSize, raw) {
 		tracker[file] = {
 			total: fileSize || 0,
 			loaded: 0,
@@ -362,9 +353,9 @@ const Preloader = /** @constructor */ function () { // eslint-disable-line no-un
 			if (!response.ok) {
 				return Promise.reject(new Error(`Failed loading file '${file}'`));
 			}
-			const tr = getTrackedResponse(response, tracker[file]);
+			const tr = dreamTrackedDownload(response, tracker[file], raw);
 			if (raw) {
-				return Promise.resolve(tr);
+				return dreamCompileDownload(tr);
 			}
 			return tr.arrayBuffer();
 		});
@@ -372,7 +363,7 @@ const Preloader = /** @constructor */ function () { // eslint-disable-line no-un
 
 	function retry(func, attempts = 1) {
 		function onerror(err) {
-			if (attempts <= 1) {
+			if (attempts <= 1 || window.dreamDownloadGate?.stopped) {
 				return Promise.reject(err);
 			}
 			return new Promise(function (resolve, reject) {
@@ -427,7 +418,7 @@ const Preloader = /** @constructor */ function () { // eslint-disable-line no-un
 	};
 
 	this.loadPromise = function (file, fileSize, raw = false) {
-		return retry(loadFetch.bind(null, file, loadingFiles, fileSize, raw), DOWNLOAD_ATTEMPTS_MAX);
+		return retry(loadFetch.bind(null, file, loadingFiles, fileSize, raw), DOWNLOAD_ATTEMPTS_MAX).catch(err => { loadingFiles[file].done = true; throw err; });
 	};
 
 	this.preloadedFiles = [];
@@ -741,7 +732,7 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 	 * @param {string} loadPath
 	 * @param {Response} response
 	 */
-	Config.prototype.getModuleConfig = function (loadPath, response) {
+	Config.prototype.getModuleConfig = function (loadPath, response, reject) {
 		let r = response;
 		const gdext = this.gdextensionLibs;
 		return {
@@ -752,17 +743,9 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 			'dynamicLibraries': [`${loadPath}.side.wasm`].concat(this.gdextensionLibs),
 			'emscriptenPoolSize': this.emscriptenPoolSize,
 			'instantiateWasm': function (imports, onSuccess) {
-				function done(result) {
-					onSuccess(result['instance'], result['module']);
-				}
-				if (typeof (WebAssembly.instantiateStreaming) !== 'undefined') {
-					WebAssembly.instantiateStreaming(Promise.resolve(r), imports).then(done);
-				} else {
-					r.arrayBuffer().then(function (buffer) {
-						WebAssembly.instantiate(buffer, imports).then(done);
-					});
-				}
-				r = null;
+				const compiled = r;
+WebAssembly.instantiate(compiled, imports).then(instance => onSuccess(instance, compiled)).catch(reject);
+r = null;
 				return {};
 			},
 			'locateFile': function (path) {
@@ -931,10 +914,9 @@ const Engine = (function () {
 					// Make sure to test that when refactoring.
 					return new Promise(function (resolve, reject) {
 						promise.then(function (response) {
-							const cloned = new Response(response.clone().body, { 'headers': [['content-type', 'application/wasm']] });
-							Godot(me.config.getModuleConfig(loadPath, cloned)).then(function (module) {
-								const paths = me.config.persistentPaths;
-								module['initFS'](paths).then(function (err) {
+							return Godot(me.config.getModuleConfig(loadPath, response, reject)).then(function (module) {
+const paths = me.config.persistentPaths;
+								return module['initFS'](paths).then(function (err) {
 									me.rtenv = module;
 									if (me.config.unloadAfterInit) {
 										Engine.unload();
@@ -942,7 +924,7 @@ const Engine = (function () {
 									resolve();
 								});
 							});
-						});
+						}).catch(reject);
 					});
 				}
 				preloader.setProgressFunc(this.config.onProgress);
