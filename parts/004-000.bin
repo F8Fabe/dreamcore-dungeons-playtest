@@ -1,5 +1,5 @@
 {
-  "build": "20261121T162244410917Z",
+  "build": "20261122T191625669660Z",
   "files": {
     "addons/runtime_sources/plugin.cfg": "58575f1e8fec8ca6b502acf626a5c9d7e70e770395c1c55da345ff4badee8f82",
     "addons/runtime_sources/plugin.gd": "b6a2ecc88caa076ba1f44698840c977543662548bfa9f35a81cb87e91566d83e",
@@ -2825,7 +2825,7 @@
     "scripts/gear_collections.gd": "2ba3e5cac0276c26cd05a9f1b38f909da0ab75ffd33c1216fd9836756054758f",
     "scripts/gear_collections_ui.gd": "d71aa9cb0c49db672eede95b5425da7366bed056093dd859b0f1dbe5c3e014f8",
     "scripts/graphics_preferences.gd": "e9f7674796216b30da70a1d192fc8e5b3309f8ce0ef15d975675ca337a51a750",
-    "scripts/grind_mode.gd": "118e3da3d96a2facf32d9a855d327198d54546d22cee28d578a6367703ecbc39",
+    "scripts/grind_mode.gd": "be2c7d779aafc93bf8de380803f7ec368f99934cd13b5f9da902bbed8f01915d",
     "scripts/grind_toggle.gd": "36d9a936dd2228ba543417e6c7763bc62d86f83dbfab11cee9b4c3156677c558",
     "scripts/hero_assets.gd": "da0ffc4274b31ef930b874f74551b46d20838460a3d9dd0e06832db3c39491c1",
     "scripts/hero_assets.gd.uid": "c10833c325eb47eed03413e8976979d24a804e704a63ade465fbba6c7f0392aa",
@@ -2864,7 +2864,7 @@
     "scripts/hero_pull_ui.gd.uid": "bdc7d1acde13a8880192d72e0dc8617686715d9f014b23a263e1f8ae0aecd42b",
     "scripts/hero_screen.gd": "1bb30f505a4cf2f81cfcc1aec5963f79594ee48eaf0dea69991840449a0bb047",
     "scripts/hero_screen.gd.uid": "ed6005293b02e11c5ffac6c2e19bc02d3fcadb941d15c6bdc8980d62c257d586",
-    "scripts/hero_select_ui.gd": "bfa03765817806898ebc18e2967e348ea18da6382e129316b812a726f5fb7d82",
+    "scripts/hero_select_ui.gd": "aef6293f7ceba8299fa4d24e83d8db753455bf676ce5a5020287fc4c04fb3023",
     "scripts/hero_select_ui.gd.uid": "956bd4df556f2c295cc371f22d21c059eea45fc4289753de68360cd99ece5e56",
     "scripts/hero_unlocks.gd": "deb5436b239a240b4a2279159f287ab882ab9570830f02cbedcbc9165704a62e",
     "scripts/hero_unlocks.gd.uid": "65291819cf1a79de3505d7768c63fa0e5e28a304724975cbe40e8001e0a0a010",

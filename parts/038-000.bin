@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "build": "20261121T162244410917Z",
+  "build": "20261122T191625669660Z",
   "fixes": [
     {
       "bug_id": 54,
@@ -32,7 +32,7 @@
     },
     {
       "bug_id": 141,
-      "fix_id": "36b57b8cbf5cf6b57d67ce9b26ed5f4fc8502b63baa608c86e7081435605408e"
+      "fix_id": "cc4e03a4154f31840b63c747702886c7fe2380cf70ae48426039fc2d36f68d73"
     },
     {
       "bug_id": 151,
@@ -51,9 +51,9 @@
     "audio_diagnostics.js": "58091d973d793547c4eaf5fbaa981f0590203e2f7ebbeef24c0b1922c8bba549",
     "audio_position_worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "audio_recovery.js": "873943b8e0bf6c4fc5bc6642b62f8dd6651463b8dd45aa86a9cf29fc26825bbc",
-    "build-manifest.json": "2660b0493970180dbb222afe87d2fa3951cca383c83f3d2558306838f7b7f4ba",
-    "changelog.html": "9591251cf40c9932e1daedf88dd143f5b412f5d1e9643597d74e78289e80b7a8",
-    "changelog.json": "0f7f289edb1829d2043631684892e190109b88240476d533415c33928c99d33c",
+    "build-manifest.json": "e6c3d14e23cd34c2a5b2c95a1896aa19e04690fec08e050b4159a6f25a240ec9",
+    "changelog.html": "70e7ec4adae8788714028f64a561f8833f154906b450cd90ff43970defc27b16",
+    "changelog.json": "e6ab4500e96a428c4d0141641843776c20a8d36b42867a4a3f371fadfd591221",
     "context_recovery.js": "0b17a28883a54fbae2f5638cd32de39f69da4263715fe14c7ca30d7f598b4ff5",
     "diagnostics.js": "c574546c418835cbdde561d7edf681591be040f8814ecc56fb81df38a7dfe719",
     "download_gate.js": "192c63fa90150a5e7fe1b4078a4bf19f8db5e610f179a80f9f8c6538906ae7a5",
@@ -65,10 +65,10 @@
     "index.apple-touch-icon.png": "0cce4fb3d77e77b8adc2c6441a6d862e1a66bb5a9e6d0966f7bef930916de281",
     "index.audio.position.worklet.js": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
     "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
-    "index.html": "3fbcbcffc8daa1d649fe445fe50ed7cdffc74932e20523afcebc6ac7256b2286",
+    "index.html": "70018fc5bba8ec5454f21d9d9be3eaba337cfdf7b3af26fe0dbb3b28c15b724d",
     "index.icon.png": "63f7307dde862ecca1cf3838f6ce0b5eaa199664a0a5690b4f2465b1dd3db656",
     "index.js": "c3905f7ef883a59dcf6664d86e2ef1fd958f18cdd1bb640f29c04797643bd1c0",
-    "index.pck": "364aa420798965fb66bb2057d1b3eadbd9f22d56427ecab39e6e4714f06b6745",
+    "index.pck": "0e4fe4f6f2da80d7751125f148766707624a065a52902775c589013dabf2bc86",
     "index.png": "296c237bd967c704e02c72a3b12b976eadbc75986867e658f716c232e96d280b",
     "index.wasm": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
     "librarian-chibi-v1.webp": "3e221b40fa052c16cdf9e53e3dc186c6be151e3c208f8973b54008f7c2e8d0af",
@@ -83,12 +83,10 @@
     "sleeping-trio-v1.webp": "677cc9f108188552dbc3e0769ac8dcdb28652f60bae74850e4cfcf98c5c147ca"
   },
   "notes": {
-    "title": "Summons stay between encounters",
-    "summary": "Your summons now stay with you between encounters instead of disappearing after rewards.",
+    "title": "Nightmare Grindmode unlocks",
+    "summary": "Clearing a Nightmare tier now unlocks Grindmode for that same tier.",
     "changes": [
-      "Surviving allied summons keep their HP and remaining lifetime through rewards, corridor travel and dungeon transitions, including saved transitions.",
-      "Reward pauses and travel no longer consume summon duration. Dead or expired summons still disappear, and summons clear when a run ends.",
-      "Updated optional playtest-session reporting."
+      "Existing recorded Nightmare wins restore missing Grindmode unlocks when you load your save. Each heroine keeps her own Nightmare progression."
     ]
   }
 }

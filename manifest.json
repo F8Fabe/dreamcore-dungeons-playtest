@@ -35,23 +35,23 @@
     "parts": [
       "004-000.bin"
     ],
-    "sha256": "2660b0493970180dbb222afe87d2fa3951cca383c83f3d2558306838f7b7f4ba"
+    "sha256": "e6c3d14e23cd34c2a5b2c95a1896aa19e04690fec08e050b4159a6f25a240ec9"
   },
   {
     "path": "changelog.html",
-    "bytes": 39294,
+    "bytes": 39771,
     "parts": [
       "005-000.bin"
     ],
-    "sha256": "9591251cf40c9932e1daedf88dd143f5b412f5d1e9643597d74e78289e80b7a8"
+    "sha256": "70e7ec4adae8788714028f64a561f8833f154906b450cd90ff43970defc27b16"
   },
   {
     "path": "changelog.json",
-    "bytes": 35138,
+    "bytes": 35513,
     "parts": [
       "006-000.bin"
     ],
-    "sha256": "0f7f289edb1829d2043631684892e190109b88240476d533415c33928c99d33c"
+    "sha256": "e6ab4500e96a428c4d0141641843776c20a8d36b42867a4a3f371fadfd591221"
   },
   {
     "path": "context_recovery.js",
@@ -147,7 +147,7 @@
     "parts": [
       "018-000.bin"
     ],
-    "sha256": "3fbcbcffc8daa1d649fe445fe50ed7cdffc74932e20523afcebc6ac7256b2286"
+    "sha256": "70018fc5bba8ec5454f21d9d9be3eaba337cfdf7b3af26fe0dbb3b28c15b724d"
   },
   {
     "path": "index.icon.png",
@@ -167,7 +167,7 @@
   },
   {
     "path": "index.pck",
-    "bytes": 95055100,
+    "bytes": 95055212,
     "parts": [
       "021-000.bin",
       "021-001.bin",
@@ -175,7 +175,7 @@
       "021-003.bin",
       "021-004.bin"
     ],
-    "sha256": "364aa420798965fb66bb2057d1b3eadbd9f22d56427ecab39e6e4714f06b6745"
+    "sha256": "0e4fe4f6f2da80d7751125f148766707624a065a52902775c589013dabf2bc86"
   },
   {
     "path": "index.png",
@@ -308,11 +308,11 @@
   },
   {
     "path": "release.json",
-    "bytes": 5083,
+    "bytes": 4850,
     "parts": [
       "038-000.bin"
     ],
-    "sha256": "0504f8bd6d95ea158d82aeaa86cf7c2ff15a882bdcef1f1deb5710e206396833"
+    "sha256": "71072624c4563cf6b3da627f146c080a08165c4a880c285639492ef2b1dd484d"
   },
   {
     "path": "render_recovery.js",

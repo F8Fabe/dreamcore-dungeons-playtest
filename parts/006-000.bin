@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "build": "20261122T191625669660Z",
+      "title": "Nightmare Grindmode unlocks",
+      "summary": "Clearing a Nightmare tier now unlocks Grindmode for that same tier.",
+      "changes": [
+        "Existing recorded Nightmare wins restore missing Grindmode unlocks when you load your save. Each heroine keeps her own Nightmare progression."
+      ]
+    },
+    {
       "build": "20261121T162244410917Z",
       "title": "Summons stay between encounters",
       "summary": "Your summons now stay with you between encounters instead of disappearing after rewards.",
